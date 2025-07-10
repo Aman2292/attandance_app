@@ -23,22 +23,40 @@ class AuthService {
 
       if (user != null) {
         // Create user document in Firestore
-        final userModel = UserModel(
-          name: name,
-          email: email,
-          role: role,
-          verified: role == 'admin', // Auto-verify admins
-          leaveBalance: const LeaveBalance(
-            paidLeave: AppConstants.defaultPaidLeaves,
-            sickLeave: AppConstants.defaultSickLeaves,
-            earnedLeave: AppConstants.defaultEarnedLeaves,
-          ),
-        );
-        await _firestore.collection('users').doc(user.uid).set(userModel.toJson());
-        return userModel;
+        final userData = {
+          'name': name,
+          'email': email,
+          'role': 'employee', // Force employee role
+          'verified': false,
+          'leaveBalance': {
+            'paidLeave': AppConstants.defaultPaidLeaves,
+            'sickLeave': AppConstants.defaultSickLeaves,
+            'earnedLeave': 0,
+          },
+        };
+        try {
+          print('Attempting to write user data to Firestore: $userData');
+          await _firestore.collection('users').doc(user.uid).set(userData);
+          print('User document created in Firestore for UID: ${user.uid}');
+          return UserModel(
+            name: name,
+            email: email,
+            role: 'employee',
+            verified: false,
+            leaveBalance: const LeaveBalance(
+              paidLeave: AppConstants.defaultPaidLeaves,
+              sickLeave: AppConstants.defaultSickLeaves,
+              earnedLeave: 0,
+            ),
+          );
+        } catch (e) {
+          print('Error writing to Firestore: $e');
+          rethrow;
+        }
       }
       return null;
     } catch (e) {
+      print('Error during signup: $e');
       rethrow;
     }
   }
@@ -60,10 +78,14 @@ class AuthService {
         DocumentSnapshot doc = await _firestore.collection('users').doc(user.uid).get();
         if (doc.exists) {
           return UserModel.fromFirestore(doc);
+        } else {
+          print('No user document found for UID: ${user.uid}');
+          throw Exception('User data not found in Firestore. Please sign up first.');
         }
       }
       return null;
     } catch (e) {
+      print('Error during sign-in: $e');
       rethrow;
     }
   }

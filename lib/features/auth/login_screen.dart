@@ -29,7 +29,11 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       setState(() {
-        _errorMessage = e.toString();
+        if (e.toString().contains('User data not found')) {
+          _errorMessage = 'Account not found. Please sign up first.';
+        } else {
+          _errorMessage = 'Login failed: $e';
+        }
       });
     }
   }

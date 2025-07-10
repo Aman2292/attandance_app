@@ -27,9 +27,11 @@ Map<String, dynamic> _$UserModelToJson(_UserModel instance) =>
 
 _LeaveBalance _$LeaveBalanceFromJson(Map<String, dynamic> json) =>
     _LeaveBalance(
-      paidLeave: (json['paidLeave'] as num?)?.toInt() ?? 12,
-      sickLeave: (json['sickLeave'] as num?)?.toInt() ?? 8,
-      earnedLeave: (json['earnedLeave'] as num?)?.toInt() ?? 4,
+      paidLeave: (json['paidLeave'] as num?)?.toInt() ??
+          AppConstants.defaultPaidLeaves,
+      sickLeave: (json['sickLeave'] as num?)?.toInt() ??
+          AppConstants.defaultSickLeaves,
+      earnedLeave: (json['earnedLeave'] as num?)?.toInt() ?? 0,
     );
 
 Map<String, dynamic> _$LeaveBalanceToJson(_LeaveBalance instance) =>

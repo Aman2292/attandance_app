@@ -21,6 +21,16 @@ abstract class UserModel with _$UserModel {
     final data = doc.data() as Map<String, dynamic>;
     return UserModel.fromJson(data);
   }
+
+  const UserModel._();
+
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'email': email,
+        'role': role,
+        'verified': verified,
+        'leaveBalance': leaveBalance.toJson(),
+      };
 }
 
 @freezed
@@ -28,8 +38,16 @@ abstract class LeaveBalance with _$LeaveBalance {
   const factory LeaveBalance({
     @Default(AppConstants.defaultPaidLeaves) int paidLeave,
     @Default(AppConstants.defaultSickLeaves) int sickLeave,
-    @Default(AppConstants.defaultEarnedLeaves) int earnedLeave,
+    @Default(0) int earnedLeave,
   }) = _LeaveBalance;
 
   factory LeaveBalance.fromJson(Map<String, dynamic> json) => _$LeaveBalanceFromJson(json);
+
+  const LeaveBalance._();
+
+  Map<String, dynamic> toJson() => {
+        'paidLeave': paidLeave,
+        'sickLeave': sickLeave,
+        'earnedLeave': earnedLeave,
+      };
 }

@@ -126,13 +126,14 @@ class _$UserModelCopyWithImpl<$Res> implements $UserModelCopyWith<$Res> {
 
 /// @nodoc
 @JsonSerializable()
-class _UserModel implements UserModel {
+class _UserModel extends UserModel {
   const _UserModel(
       {required this.name,
       required this.email,
       required this.role,
       required this.verified,
-      this.leaveBalance = const LeaveBalance()});
+      this.leaveBalance = const LeaveBalance()})
+      : super._();
   factory _UserModel.fromJson(Map<String, dynamic> json) =>
       _$UserModelFromJson(json);
 
@@ -345,9 +346,12 @@ class _$LeaveBalanceCopyWithImpl<$Res> implements $LeaveBalanceCopyWith<$Res> {
 
 /// @nodoc
 @JsonSerializable()
-class _LeaveBalance implements LeaveBalance {
+class _LeaveBalance extends LeaveBalance {
   const _LeaveBalance(
-      {this.paidLeave = 12, this.sickLeave = 8, this.earnedLeave = 4});
+      {this.paidLeave = AppConstants.defaultPaidLeaves,
+      this.sickLeave = AppConstants.defaultSickLeaves,
+      this.earnedLeave = 0})
+      : super._();
   factory _LeaveBalance.fromJson(Map<String, dynamic> json) =>
       _$LeaveBalanceFromJson(json);
 

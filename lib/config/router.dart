@@ -34,9 +34,7 @@ final routerConfig = GoRouter(
       final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
       if (userDoc.exists) {
         final userModel = UserModel.fromFirestore(userDoc);
-        if (userModel.role == 'admin' && state.matchedLocation.startsWith('/employee')) {
-          return '/admin';
-        } else if (userModel.role == 'employee' && state.matchedLocation.startsWith('/admin')) {
+        if (userModel.role == 'employee' && state.matchedLocation.startsWith('/admin')) {
           return '/employee';
         }
       }

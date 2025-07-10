@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/constants.dart';
 import '../../core/widgets/input_field.dart';
 import '../../services/auth_service.dart';
@@ -16,23 +17,77 @@ class _SignupScreenState extends State<SignupScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   final _authService = AuthService();
   String? _errorMessage;
 
   Future<void> _signUp() async {
+    String name = _nameController.text.trim();
+    String email = _emailController.text.trim();
+    String password = _passwordController.text.trim();
+    String confirmPassword = _confirmPasswordController.text.trim();
+
+    // Basic validation
+    if (name.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+      setState(() {
+        _errorMessage = 'Please fill all fields';
+      });
+      return;
+    }
+
+    if (!RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$').hasMatch(email)) {
+      setState(() {
+        _errorMessage = 'Please enter a valid email address';
+      });
+      return;
+    }
+
+    if (password.length < 6) {
+      setState(() {
+        _errorMessage = 'Password must be at least 6 characters long';
+      });
+      return;
+    }
+
+    if (password != confirmPassword) {
+      setState(() {
+        _errorMessage = 'Passwords do not match';
+      });
+      return;
+    }
+
     try {
       final user = await _authService.signUp(
-        name: _nameController.text.trim(),
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-        role: 'employee', // Default to employee role
+        name: name,
+        email: email,
+        password: password,
+        role: 'employee', // Only employees
       );
       if (user != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Registration Successful')),
+        );
         context.go('/employee');
       }
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        switch (e.code) {
+          case 'email-already-in-use':
+            _errorMessage = 'This email is already registered.';
+            break;
+          case 'invalid-email':
+            _errorMessage = 'Invalid email format.';
+            break;
+          case 'weak-password':
+            _errorMessage = 'Password is too weak.';
+            break;
+          default:
+            _errorMessage = 'Signup failed: ${e.message}';
+        }
+      });
     } catch (e) {
       setState(() {
-        _errorMessage = e.toString();
+        _errorMessage = 'Error saving user data: $e';
       });
     }
   }
@@ -63,6 +118,13 @@ class _SignupScreenState extends State<SignupScreen> {
             AppInputField(
               labelText: 'Password',
               controller: _passwordController,
+              obscureText: true,
+              prefixIcon: const Icon(Iconsax.lock),
+            ),
+            const SizedBox(height: 16),
+            AppInputField(
+              labelText: 'Confirm Password',
+              controller: _confirmPasswordController,
               obscureText: true,
               prefixIcon: const Icon(Iconsax.lock),
             ),

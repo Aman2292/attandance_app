@@ -14,9 +14,9 @@ class AppConstants {
   static const int lateThresholdMinutes = 15; // 15 minutes threshold for late
   
   // Leave Constants
-  static const int defaultPaidLeaves = 12;
-  static const int defaultSickLeaves = 8;
-  static const int defaultEarnedLeaves = 4;
+  static const int defaultPaidLeaves = 18;
+  static const int defaultSickLeaves = 6;
+  static const int defaultEarnedLeaves = 0;
 }
 
 
