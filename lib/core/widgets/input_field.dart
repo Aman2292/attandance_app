@@ -10,6 +10,7 @@ class AppInputField extends StatelessWidget {
   final Widget? suffixIcon;
   final TextInputType? keyboardType;
 
+
   const AppInputField({
     super.key,
     required this.labelText,
@@ -19,6 +20,7 @@ class AppInputField extends StatelessWidget {
     this.prefixIcon,
     this.suffixIcon,
     this.keyboardType, 
+
   });
 
   @override

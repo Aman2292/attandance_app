@@ -1,20 +1,69 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:intl/intl.dart';
 import '../../core/constants.dart';
 import '../../core/widgets/input_field.dart';
+import '../../providers/leave_provider.dart';
+import '../../providers/user_provider.dart';
 
-class ApplyLeaveScreen extends StatefulWidget {
+class ApplyLeaveScreen extends ConsumerStatefulWidget {
   const ApplyLeaveScreen({super.key});
 
   @override
-  State<ApplyLeaveScreen> createState() => _ApplyLeaveScreenState();
+  ConsumerState<ApplyLeaveScreen> createState() => _ApplyLeaveScreenState();
 }
 
-class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
+class _ApplyLeaveScreenState extends ConsumerState<ApplyLeaveScreen> {
   final _reasonController = TextEditingController();
   String? _leaveType;
-  DateTime? _fromDate;
-  DateTime? _toDate;
+  DateTime? _startDate;
+  DateTime? _endDate;
+
+  Future<void> _selectDate(BuildContext context, bool isStart) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (picked != null) {
+      setState(() {
+        if (isStart) {
+          _startDate = picked;
+        } else {
+          _endDate = picked;
+        }
+      });
+    }
+  }
+
+  Future<void> _applyLeave() async {
+    if (_leaveType == null || _startDate == null || _endDate == null || _reasonController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all fields')),
+      );
+      return;
+    }
+    try {
+      await ref.read(leaveServiceProvider).applyLeave(
+            userId: ref.read(authServiceProvider).currentUser!.uid,
+            type: _leaveType!,
+            startDate: _startDate!,
+            endDate: _endDate!,
+            reason: _reasonController.text.trim(),
+          );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Leave applied successfully')),
+      );
+      context.pop();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,65 +80,50 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
           children: [
             DropdownButtonFormField<String>(
               decoration: AppInputDecorations.textFieldDecoration(labelText: 'Leave Type'),
-              items: const [
-                DropdownMenuItem(value: 'paidLeave', child: Text('Paid Leave')),
-                DropdownMenuItem(value: 'sickLeave', child: Text('Sick Leave')),
-                DropdownMenuItem(value: 'earnedLeave', child: Text('Earned Leave')),
-              ],
+              value: _leaveType,
+              items: ['paid', 'sick', 'earned']
+                  .map((type) => DropdownMenuItem(value: type, child: Text(type.capitalize())))
+                  .toList(),
               onChanged: (value) => setState(() => _leaveType = value),
             ),
             const SizedBox(height: 16),
-            // AppInputField(
-            //   labelText: 'From Date',
-            //   prefixIcon: const Icon(Iconsax.calendar),
-            //   readOnly: true,
-            //   onTap: () async {
-            //     final date = await showDatePicker(
-            //       context: context,
-            //       initialDate: DateTime.now(),
-            //       firstDate: DateTime.now(),
-            //       lastDate: DateTime.now().add(const Duration(days: 365)),
-            //     );
-            //     if (date != null) setState(() => _fromDate = date);
-            //   },
-            //   hintText: _fromDate?.toString().split(' ')[0] ?? 'Select Date',
-            // ),
+            AppInputField(
+              labelText: 'Start Date',
+              controller: TextEditingController(
+                  text: _startDate != null ? DateFormat('yyyy-MM-dd').format(_startDate!) : ''),
+              // readOnly: true,
+              // onTap: () => _selectDate(context, true),
+              prefixIcon: const Icon(Iconsax.calendar),
+            ),
             const SizedBox(height: 16),
-            // AppInputField(
-            //   labelText: 'To Date',
-            //   prefixIcon: const Icon(Iconsax.calendar),
-            //   readOnly: true,
-            //   onTap: () async {
-            //     final date = await showDatePicker(
-            //       context: context,
-            //       initialDate: DateTime.now(),
-            //       firstDate: DateTime.now(),
-            //       lastDate: DateTime.now().add(const Duration(days: 365)),
-            //     );
-            //     if (date != null) setState(() => _toDate = date);
-            //   },
-            //   hintText: _toDate?.toString().split(' ')[0] ?? 'Select Date',
-            // ),
-            // const SizedBox(height: 16),
-            // AppInputField(
-            //   labelText: 'Reason',
-            //   controller: _reasonController,
-            //   keyboardType: TextInputType.multiline,
-            //   maxLines: 3,
-            // ),
-            // const SizedBox(height: 24),
-            // ElevatedButton(
-            //   style: AppButtonStyles.primaryButton,
-            //   onPressed: () {
-            //     ScaffoldMessenger.of(context).showSnackBar(
-            //       const SnackBar(content: Text('Leave Applied')),
-            //     );
-            //   },
-            //   child: const Text('Submit', style: AppTextStyles.button),
-            // ),
+            AppInputField(
+              labelText: 'End Date',
+              controller: TextEditingController(
+                  text: _endDate != null ? DateFormat('yyyy-MM-dd').format(_endDate!) : ''),
+              // readOnly: true,
+              // onTap: () => _selectDate(context, false),
+              prefixIcon: const Icon(Iconsax.calendar),
+            ),
+            const SizedBox(height: 16),
+            AppInputField(
+              labelText: 'Reason',
+              controller: _reasonController,
+              // maxLines: 3,
+              prefixIcon: const Icon(Iconsax.note),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              style: AppButtonStyles.primaryButton,
+              onPressed: _applyLeave,
+              child: const Text('Apply', style: AppTextStyles.button),
+            ),
           ],
         ),
       ),
     );
   }
+}
+
+extension StringExtension on String {
+  String capitalize() => this[0].toUpperCase() + substring(1);
 }
