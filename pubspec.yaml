@@ -39,6 +39,7 @@ dependencies:
   riverpod_lint: ^2.6.5
   google_fonts: ^6.2.1
   action_slider: ^0.7.0
+  table_calendar: ^3.2.0
 
 dev_dependencies:
   flutter_test:

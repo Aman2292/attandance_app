@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/leave_record.dart';
 import '../models/user_model.dart';
 
-
 class LeaveService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -90,5 +89,27 @@ class LeaveService {
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs.map((doc) => LeaveRecord.fromFirestore(doc)).toList());
+  }
+
+  // Get leave summary for reports
+  Future<Map<String, int>> getLeaveSummary(String userId, DateTime start, DateTime end) async {
+    try {
+      final snapshot = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('leaves')
+          .where('startDate', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+          .where('startDate', isLessThanOrEqualTo: Timestamp.fromDate(end))
+          .get();
+      final records = snapshot.docs.map((doc) => LeaveRecord.fromFirestore(doc)).toList();
+      return {
+        'paid': records.where((r) => r.type == 'paid' && r.status == 'approved').length,
+        'sick': records.where((r) => r.type == 'sick' && r.status == 'approved').length,
+        'earned': records.where((r) => r.type == 'earned' && r.status == 'approved').length,
+      };
+    } catch (e) {
+      print('Error getting leave summary: $e');
+      rethrow;
+    }
   }
 }

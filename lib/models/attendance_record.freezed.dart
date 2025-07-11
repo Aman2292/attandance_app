@@ -17,11 +17,23 @@ T _$identity<T>(T value) => value;
 mixin _$AttendanceRecord {
   String get id;
   String get userId;
+  @TimestampConverter()
   DateTime get date;
   String get status; // 'present', 'absent', 'late'
-  String get remarks;
+  String get notes;
   @TimestampConverter()
   DateTime? get createdAt;
+  @TimestampConverter()
+  DateTime? get checkInTime;
+  @TimestampConverter()
+  DateTime? get checkOutTime;
+  @TimestampConverter()
+  DateTime? get breakStartTime;
+  @TimestampConverter()
+  DateTime? get breakEndTime;
+  int get totalBreakDuration; // In seconds, max 3600 (1 hour)
+  bool get isLate; // True if after 9:30 AM
+  bool get withinOfficeRadius;
 
   /// Create a copy of AttendanceRecord
   /// with the given fields replaced by the non-null parameter values.
@@ -43,19 +55,45 @@ mixin _$AttendanceRecord {
             (identical(other.userId, userId) || other.userId == userId) &&
             (identical(other.date, date) || other.date == date) &&
             (identical(other.status, status) || other.status == status) &&
-            (identical(other.remarks, remarks) || other.remarks == remarks) &&
+            (identical(other.notes, notes) || other.notes == notes) &&
             (identical(other.createdAt, createdAt) ||
-                other.createdAt == createdAt));
+                other.createdAt == createdAt) &&
+            (identical(other.checkInTime, checkInTime) ||
+                other.checkInTime == checkInTime) &&
+            (identical(other.checkOutTime, checkOutTime) ||
+                other.checkOutTime == checkOutTime) &&
+            (identical(other.breakStartTime, breakStartTime) ||
+                other.breakStartTime == breakStartTime) &&
+            (identical(other.breakEndTime, breakEndTime) ||
+                other.breakEndTime == breakEndTime) &&
+            (identical(other.totalBreakDuration, totalBreakDuration) ||
+                other.totalBreakDuration == totalBreakDuration) &&
+            (identical(other.isLate, isLate) || other.isLate == isLate) &&
+            (identical(other.withinOfficeRadius, withinOfficeRadius) ||
+                other.withinOfficeRadius == withinOfficeRadius));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, id, userId, date, status, remarks, createdAt);
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      userId,
+      date,
+      status,
+      notes,
+      createdAt,
+      checkInTime,
+      checkOutTime,
+      breakStartTime,
+      breakEndTime,
+      totalBreakDuration,
+      isLate,
+      withinOfficeRadius);
 
   @override
   String toString() {
-    return 'AttendanceRecord(id: $id, userId: $userId, date: $date, status: $status, remarks: $remarks, createdAt: $createdAt)';
+    return 'AttendanceRecord(id: $id, userId: $userId, date: $date, status: $status, notes: $notes, createdAt: $createdAt, checkInTime: $checkInTime, checkOutTime: $checkOutTime, breakStartTime: $breakStartTime, breakEndTime: $breakEndTime, totalBreakDuration: $totalBreakDuration, isLate: $isLate, withinOfficeRadius: $withinOfficeRadius)';
   }
 }
 
@@ -68,10 +106,17 @@ abstract mixin class $AttendanceRecordCopyWith<$Res> {
   $Res call(
       {String id,
       String userId,
-      DateTime date,
+      @TimestampConverter() DateTime date,
       String status,
-      String remarks,
-      @TimestampConverter() DateTime? createdAt});
+      String notes,
+      @TimestampConverter() DateTime? createdAt,
+      @TimestampConverter() DateTime? checkInTime,
+      @TimestampConverter() DateTime? checkOutTime,
+      @TimestampConverter() DateTime? breakStartTime,
+      @TimestampConverter() DateTime? breakEndTime,
+      int totalBreakDuration,
+      bool isLate,
+      bool withinOfficeRadius});
 }
 
 /// @nodoc
@@ -91,8 +136,15 @@ class _$AttendanceRecordCopyWithImpl<$Res>
     Object? userId = null,
     Object? date = null,
     Object? status = null,
-    Object? remarks = null,
+    Object? notes = null,
     Object? createdAt = freezed,
+    Object? checkInTime = freezed,
+    Object? checkOutTime = freezed,
+    Object? breakStartTime = freezed,
+    Object? breakEndTime = freezed,
+    Object? totalBreakDuration = null,
+    Object? isLate = null,
+    Object? withinOfficeRadius = null,
   }) {
     return _then(_self.copyWith(
       id: null == id
@@ -111,14 +163,42 @@ class _$AttendanceRecordCopyWithImpl<$Res>
           ? _self.status
           : status // ignore: cast_nullable_to_non_nullable
               as String,
-      remarks: null == remarks
-          ? _self.remarks
-          : remarks // ignore: cast_nullable_to_non_nullable
+      notes: null == notes
+          ? _self.notes
+          : notes // ignore: cast_nullable_to_non_nullable
               as String,
       createdAt: freezed == createdAt
           ? _self.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
               as DateTime?,
+      checkInTime: freezed == checkInTime
+          ? _self.checkInTime
+          : checkInTime // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      checkOutTime: freezed == checkOutTime
+          ? _self.checkOutTime
+          : checkOutTime // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      breakStartTime: freezed == breakStartTime
+          ? _self.breakStartTime
+          : breakStartTime // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      breakEndTime: freezed == breakEndTime
+          ? _self.breakEndTime
+          : breakEndTime // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      totalBreakDuration: null == totalBreakDuration
+          ? _self.totalBreakDuration
+          : totalBreakDuration // ignore: cast_nullable_to_non_nullable
+              as int,
+      isLate: null == isLate
+          ? _self.isLate
+          : isLate // ignore: cast_nullable_to_non_nullable
+              as bool,
+      withinOfficeRadius: null == withinOfficeRadius
+          ? _self.withinOfficeRadius
+          : withinOfficeRadius // ignore: cast_nullable_to_non_nullable
+              as bool,
     ));
   }
 }
@@ -129,10 +209,17 @@ class _AttendanceRecord implements AttendanceRecord {
   const _AttendanceRecord(
       {required this.id,
       required this.userId,
-      required this.date,
+      @TimestampConverter() required this.date,
       required this.status,
-      this.remarks = '',
-      @TimestampConverter() this.createdAt});
+      this.notes = '',
+      @TimestampConverter() this.createdAt,
+      @TimestampConverter() this.checkInTime,
+      @TimestampConverter() this.checkOutTime,
+      @TimestampConverter() this.breakStartTime,
+      @TimestampConverter() this.breakEndTime,
+      this.totalBreakDuration = 0,
+      this.isLate = false,
+      this.withinOfficeRadius = false});
   factory _AttendanceRecord.fromJson(Map<String, dynamic> json) =>
       _$AttendanceRecordFromJson(json);
 
@@ -141,16 +228,40 @@ class _AttendanceRecord implements AttendanceRecord {
   @override
   final String userId;
   @override
+  @TimestampConverter()
   final DateTime date;
   @override
   final String status;
 // 'present', 'absent', 'late'
   @override
   @JsonKey()
-  final String remarks;
+  final String notes;
   @override
   @TimestampConverter()
   final DateTime? createdAt;
+  @override
+  @TimestampConverter()
+  final DateTime? checkInTime;
+  @override
+  @TimestampConverter()
+  final DateTime? checkOutTime;
+  @override
+  @TimestampConverter()
+  final DateTime? breakStartTime;
+  @override
+  @TimestampConverter()
+  final DateTime? breakEndTime;
+  @override
+  @JsonKey()
+  final int totalBreakDuration;
+// In seconds, max 3600 (1 hour)
+  @override
+  @JsonKey()
+  final bool isLate;
+// True if after 9:30 AM
+  @override
+  @JsonKey()
+  final bool withinOfficeRadius;
 
   /// Create a copy of AttendanceRecord
   /// with the given fields replaced by the non-null parameter values.
@@ -176,19 +287,45 @@ class _AttendanceRecord implements AttendanceRecord {
             (identical(other.userId, userId) || other.userId == userId) &&
             (identical(other.date, date) || other.date == date) &&
             (identical(other.status, status) || other.status == status) &&
-            (identical(other.remarks, remarks) || other.remarks == remarks) &&
+            (identical(other.notes, notes) || other.notes == notes) &&
             (identical(other.createdAt, createdAt) ||
-                other.createdAt == createdAt));
+                other.createdAt == createdAt) &&
+            (identical(other.checkInTime, checkInTime) ||
+                other.checkInTime == checkInTime) &&
+            (identical(other.checkOutTime, checkOutTime) ||
+                other.checkOutTime == checkOutTime) &&
+            (identical(other.breakStartTime, breakStartTime) ||
+                other.breakStartTime == breakStartTime) &&
+            (identical(other.breakEndTime, breakEndTime) ||
+                other.breakEndTime == breakEndTime) &&
+            (identical(other.totalBreakDuration, totalBreakDuration) ||
+                other.totalBreakDuration == totalBreakDuration) &&
+            (identical(other.isLate, isLate) || other.isLate == isLate) &&
+            (identical(other.withinOfficeRadius, withinOfficeRadius) ||
+                other.withinOfficeRadius == withinOfficeRadius));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, id, userId, date, status, remarks, createdAt);
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      userId,
+      date,
+      status,
+      notes,
+      createdAt,
+      checkInTime,
+      checkOutTime,
+      breakStartTime,
+      breakEndTime,
+      totalBreakDuration,
+      isLate,
+      withinOfficeRadius);
 
   @override
   String toString() {
-    return 'AttendanceRecord(id: $id, userId: $userId, date: $date, status: $status, remarks: $remarks, createdAt: $createdAt)';
+    return 'AttendanceRecord(id: $id, userId: $userId, date: $date, status: $status, notes: $notes, createdAt: $createdAt, checkInTime: $checkInTime, checkOutTime: $checkOutTime, breakStartTime: $breakStartTime, breakEndTime: $breakEndTime, totalBreakDuration: $totalBreakDuration, isLate: $isLate, withinOfficeRadius: $withinOfficeRadius)';
   }
 }
 
@@ -203,10 +340,17 @@ abstract mixin class _$AttendanceRecordCopyWith<$Res>
   $Res call(
       {String id,
       String userId,
-      DateTime date,
+      @TimestampConverter() DateTime date,
       String status,
-      String remarks,
-      @TimestampConverter() DateTime? createdAt});
+      String notes,
+      @TimestampConverter() DateTime? createdAt,
+      @TimestampConverter() DateTime? checkInTime,
+      @TimestampConverter() DateTime? checkOutTime,
+      @TimestampConverter() DateTime? breakStartTime,
+      @TimestampConverter() DateTime? breakEndTime,
+      int totalBreakDuration,
+      bool isLate,
+      bool withinOfficeRadius});
 }
 
 /// @nodoc
@@ -226,8 +370,15 @@ class __$AttendanceRecordCopyWithImpl<$Res>
     Object? userId = null,
     Object? date = null,
     Object? status = null,
-    Object? remarks = null,
+    Object? notes = null,
     Object? createdAt = freezed,
+    Object? checkInTime = freezed,
+    Object? checkOutTime = freezed,
+    Object? breakStartTime = freezed,
+    Object? breakEndTime = freezed,
+    Object? totalBreakDuration = null,
+    Object? isLate = null,
+    Object? withinOfficeRadius = null,
   }) {
     return _then(_AttendanceRecord(
       id: null == id
@@ -246,14 +397,42 @@ class __$AttendanceRecordCopyWithImpl<$Res>
           ? _self.status
           : status // ignore: cast_nullable_to_non_nullable
               as String,
-      remarks: null == remarks
-          ? _self.remarks
-          : remarks // ignore: cast_nullable_to_non_nullable
+      notes: null == notes
+          ? _self.notes
+          : notes // ignore: cast_nullable_to_non_nullable
               as String,
       createdAt: freezed == createdAt
           ? _self.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
               as DateTime?,
+      checkInTime: freezed == checkInTime
+          ? _self.checkInTime
+          : checkInTime // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      checkOutTime: freezed == checkOutTime
+          ? _self.checkOutTime
+          : checkOutTime // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      breakStartTime: freezed == breakStartTime
+          ? _self.breakStartTime
+          : breakStartTime // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      breakEndTime: freezed == breakEndTime
+          ? _self.breakEndTime
+          : breakEndTime // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      totalBreakDuration: null == totalBreakDuration
+          ? _self.totalBreakDuration
+          : totalBreakDuration // ignore: cast_nullable_to_non_nullable
+              as int,
+      isLate: null == isLate
+          ? _self.isLate
+          : isLate // ignore: cast_nullable_to_non_nullable
+              as bool,
+      withinOfficeRadius: null == withinOfficeRadius
+          ? _self.withinOfficeRadius
+          : withinOfficeRadius // ignore: cast_nullable_to_non_nullable
+              as bool,
     ));
   }
 }

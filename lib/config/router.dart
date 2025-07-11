@@ -127,10 +127,10 @@ final routerConfig = GoRouter(
           path: 'approve-leave',
           builder: (context, state) => const ApproveLeaveScreen(),
         ),
-        // GoRoute(
-        //   path: 'attendance-overview',
-        //   builder: (context, state) => const AttendanceOverviewScreen(),
-        // ),
+        GoRoute(
+          path: 'attendance-overview',
+          builder: (context, state) => const AttendanceOverviewScreen(),
+        ),
       ],
     ),
   ],
