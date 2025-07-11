@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants.dart';
 import '../../providers/user_provider.dart';
 import '../../providers/attendance_provider.dart';
@@ -17,7 +18,7 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
-  String _filter = 'days'; // Default filter: days (last 30 days)
+  String _filter = 'today'; // Default filter: today
   Stream<Position>? _positionStream;
   bool _isWithinRange = false;
   Timer? _locationTimer;
@@ -27,9 +28,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   void initState() {
     super.initState();
     _startLocationStream();
-    // Update time and location every minute
+    _loadUserPreference();
     _timeUpdateTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
-      setState(() {}); // Trigger rebuild for real-time time and location
+      setState(() {});
     });
   }
 
@@ -45,7 +46,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (!serviceEnabled) {
       _showSnackBar('Please enable location services');
       setState(() {
-        _isWithinRange = false; // Default to not within range
+        _isWithinRange = false;
       });
       _startLocationCheckTimer();
       return;
@@ -74,7 +75,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   void _startLocationCheckTimer() {
-    // Check location every 10 seconds
     _locationTimer?.cancel();
     _locationTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
       if (_positionStream != null) {
@@ -90,7 +90,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           print('Location stream error: $e');
           if (mounted) {
             setState(() {
-              _isWithinRange = false; // Default to not within range on error
+              _isWithinRange = false;
             });
           }
         }
@@ -113,12 +113,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           .doc('office')
           .get();
       if (!doc.exists) {
-        print('Office config not found');
         _showSnackBar('Office location not configured');
         return false;
       }
       final data = doc.data()!;
-      print('Firestore office config: $data'); // Debug log
       final officeLat = (data['latitude'] is num)
           ? (data['latitude'] as num).toDouble()
           : null;
@@ -128,10 +126,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       final radius = (data['radiusMeters'] is num)
           ? (data['radiusMeters'] as num).toDouble()
           : null;
-      print(
-          'Parsed values: lat=$officeLat, lon=$officeLon, radius=$radius'); // Debug log
       if (officeLat == null || officeLon == null || radius == null) {
-        print('Invalid office config data');
         _showSnackBar('Invalid office location data');
         return false;
       }
@@ -141,13 +136,42 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         officeLat,
         officeLon,
       );
-      print('Distance to office: $distance meters'); // Debug log
       return distance <= radius;
     } catch (e) {
-      print('Error checking location: $e');
       _showSnackBar('Error checking location: $e');
       return false;
     }
+  }
+
+  Future<void> _loadUserPreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = ref.read(authServiceProvider).currentUser?.uid;
+    if (userId != null) {
+      await prefs.setString('userId', userId);
+    }
+  }
+
+  Future<String?> _showNotesDialog() async {
+    return showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reason for Lateness'),
+        content: TextField(
+          decoration: const InputDecoration(hintText: 'Enter notes (e.g., Traffic delay)'),
+          onChanged: (value) {},
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, 'Traffic delay'),
+            child: const Text('Submit'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -157,7 +181,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final todayAttendanceAsync = ref.watch(attendanceProvider(userId));
     final attendanceSummaryAsync = ref.watch(attendanceSummaryProvider({
       'userId': userId,
-      'start': _filter == 'days'
+      'start': _filter == 'today'
+          ? DateTime.now().subtract(const Duration(days: 0))
+          : _filter == '7days'
+          ? DateTime.now().subtract(const Duration(days: 7))
+          : _filter == 'days'
           ? DateTime.now().subtract(const Duration(days: 30))
           : DateTime.now().subtract(const Duration(days: 365)),
       'end': DateTime.now(),
@@ -298,6 +326,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                           await attendanceNotifier.checkIn(
                                               withinOfficeRadius: _isWithinRange,
                                               notes: notes);
+                                          context.go('/attendance');
                                         }
                                       : null,
                                   style: ElevatedButton.styleFrom(
@@ -320,8 +349,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                 ElevatedButton(
                                   onPressed: _isWithinRange &&
                                           attendance.checkOutTime == null
-                                      ? () async {
-                                          await attendanceNotifier.checkOut();
+                                      ? () {
+                                          context.go('/attendance');
                                         }
                                       : null,
                                   style: ElevatedButton.styleFrom(
@@ -332,37 +361,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                   ),
                                   child: const Text('Checkout'),
                                 ),
-                                const SizedBox(height: 10),
-                                if (attendance.checkOutTime == null &&
-                                    attendance.breakStartTime == null)
-                                  ElevatedButton(
-                                    onPressed: _isWithinRange
-                                        ? () async {
-                                            await attendanceNotifier.startBreak();
-                                          }
-                                        : null,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: _isWithinRange
-                                          ? AppColors.primary
-                                          : Colors.grey,
-                                    ),
-                                    child: const Text('Start Break'),
-                                  ),
-                                if (attendance.breakStartTime != null &&
-                                    attendance.breakEndTime == null)
-                                  ElevatedButton(
-                                    onPressed: _isWithinRange
-                                        ? () async {
-                                            await attendanceNotifier.endBreak();
-                                          }
-                                        : null,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: _isWithinRange
-                                          ? AppColors.primary
-                                          : Colors.grey,
-                                    ),
-                                    child: const Text('End Break'),
-                                  ),
                               ],
                             );
                           }
@@ -384,6 +382,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     DropdownButton<String>(
                       value: _filter,
                       items: [
+                        DropdownMenuItem(
+                            value: 'today',
+                            child: Text('Today',
+                                style: AppTextStyles.bodySmall)),
+                        DropdownMenuItem(
+                            value: '7days',
+                            child: Text('Last 7 Days',
+                                style: AppTextStyles.bodySmall)),
                         DropdownMenuItem(
                             value: 'days',
                             child: Text('Last 30 Days',
@@ -472,29 +478,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             style: AppTextStyles.bodyMedium.copyWith(color: AppColors.error),
           ),
         ),
-      ),
-    );
-  }
-
-  Future<String?> _showNotesDialog() async {
-    return showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Reason for Lateness'),
-        content: TextField(
-          decoration: const InputDecoration(hintText: 'Enter notes (e.g., Traffic delay)'),
-          onChanged: (value) {},
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, 'Traffic delay'), // Default or user input
-            child: const Text('Submit'),
-          ),
-        ],
       ),
     );
   }

@@ -11,42 +11,27 @@ class AttendanceService {
   }) async {
     try {
       final today = DateTime.now();
-      final startOfDay = DateTime(today.year, today.month, today.day);
-      final endOfDay = startOfDay.add(const Duration(days: 1));
-      final snapshot = await _firestore
+      final dateId = DateTime(today.year, today.month, today.day).toIso8601String().split('T')[0]; // e.g., "2025-07-11"
+      final docRef = _firestore
           .collection('users')
           .doc(userId)
           .collection('attendance')
-          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-          .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
-          .get();
-      if (snapshot.docs.isNotEmpty) {
-        throw Exception('Check-in already exists for today');
-      }
+          .doc(dateId);
+      final docSnapshot = await docRef.get();
       final now = DateTime.now();
       final isLate = now.hour > 9 || (now.hour == 9 && now.minute >= 30);
       final record = AttendanceRecord(
-        id: _firestore
-            .collection('users')
-            .doc(userId)
-            .collection('attendance')
-            .doc()
-            .id,
+        id: dateId,
         userId: userId,
         date: now,
         status: isLate ? 'late' : 'present',
         notes: isLate && notes == null ? 'Late without notes' : notes ?? '',
-        createdAt: now,
+        createdAt: docSnapshot.exists ? docSnapshot.get('createdAt') as DateTime? : now,
         checkInTime: now,
         isLate: isLate,
         withinOfficeRadius: withinOfficeRadius,
       );
-      await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('attendance')
-          .doc(record.id)
-          .set(record.toJson());
+      await docRef.set(record.toJson(), SetOptions(merge: true));
     } catch (e) {
       print('Error checking in: $e');
       rethrow;
@@ -58,29 +43,21 @@ class AttendanceService {
   }) async {
     try {
       final today = DateTime.now();
-      final startOfDay = DateTime(today.year, today.month, today.day);
-      final endOfDay = startOfDay.add(const Duration(days: 1));
-      final snapshot = await _firestore
+      final dateId = DateTime(today.year, today.month, today.day).toIso8601String().split('T')[0];
+      final docRef = _firestore
           .collection('users')
           .doc(userId)
           .collection('attendance')
-          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-          .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
-          .get();
-      if (snapshot.docs.isEmpty) {
+          .doc(dateId);
+      final docSnapshot = await docRef.get();
+      if (!docSnapshot.exists) {
         throw Exception('No check-in found for today');
       }
-      final record = snapshot.docs.first;
-      final data = record.data();
-      if (data['checkOutTime'] != null) {
+      final data = docSnapshot.data();
+      if (data?['checkOutTime'] != null) {
         throw Exception('Checkout already exists for today');
       }
-      await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('attendance')
-          .doc(record.id)
-          .update({'checkOutTime': FieldValue.serverTimestamp()});
+      await docRef.update({'checkOutTime': FieldValue.serverTimestamp()});
     } catch (e) {
       print('Error checking out: $e');
       rethrow;
@@ -92,29 +69,21 @@ class AttendanceService {
   }) async {
     try {
       final today = DateTime.now();
-      final startOfDay = DateTime(today.year, today.month, today.day);
-      final endOfDay = startOfDay.add(const Duration(days: 1));
-      final snapshot = await _firestore
+      final dateId = DateTime(today.year, today.month, today.day).toIso8601String().split('T')[0];
+      final docRef = _firestore
           .collection('users')
           .doc(userId)
           .collection('attendance')
-          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-          .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
-          .get();
-      if (snapshot.docs.isEmpty) {
+          .doc(dateId);
+      final docSnapshot = await docRef.get();
+      if (!docSnapshot.exists) {
         throw Exception('No check-in found for today');
       }
-      final record = snapshot.docs.first;
-      final data = record.data();
-      if (data['breakStartTime'] != null) {
+      final data = docSnapshot.data();
+      if (data?['breakStartTime'] != null) {
         throw Exception('Break already started for today');
       }
-      await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('attendance')
-          .doc(record.id)
-          .update({'breakStartTime': FieldValue.serverTimestamp()});
+      await docRef.update({'breakStartTime': FieldValue.serverTimestamp()});
     } catch (e) {
       print('Error starting break: $e');
       rethrow;
@@ -126,38 +95,30 @@ class AttendanceService {
   }) async {
     try {
       final today = DateTime.now();
-      final startOfDay = DateTime(today.year, today.month, today.day);
-      final endOfDay = startOfDay.add(const Duration(days: 1));
-      final snapshot = await _firestore
+      final dateId = DateTime(today.year, today.month, today.day).toIso8601String().split('T')[0];
+      final docRef = _firestore
           .collection('users')
           .doc(userId)
           .collection('attendance')
-          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-          .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
-          .get();
-      if (snapshot.docs.isEmpty) {
+          .doc(dateId);
+      final docSnapshot = await docRef.get();
+      if (!docSnapshot.exists) {
         throw Exception('No check-in found for today');
       }
-      final record = snapshot.docs.first;
-      final data = record.data();
-      if (data['breakEndTime'] != null) {
+      final data = docSnapshot.data();
+      if (data?['breakEndTime'] != null) {
         throw Exception('Break already ended for today');
       }
-      final breakStart = data['breakStartTime'] as Timestamp?;
+      final breakStart = data?['breakStartTime'] as Timestamp?;
       if (breakStart == null) {
         throw Exception('No break started for today');
       }
       final breakDuration = DateTime.now().difference(breakStart.toDate()).inSeconds;
       final totalBreakDuration = breakDuration > 3600 ? 3600 : breakDuration;
-      await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('attendance')
-          .doc(record.id)
-          .update({
-            'breakEndTime': FieldValue.serverTimestamp(),
-            'totalBreakDuration': totalBreakDuration,
-          });
+      await docRef.update({
+        'breakEndTime': FieldValue.serverTimestamp(),
+        'totalBreakDuration': totalBreakDuration,
+      });
     } catch (e) {
       print('Error ending break: $e');
       rethrow;
@@ -209,15 +170,13 @@ class AttendanceService {
 
   Stream<AttendanceRecord?> getTodayAttendance(String userId) {
     final today = DateTime.now();
-    final startOfDay = DateTime(today.year, today.month, today.day);
-    final endOfDay = startOfDay.add(const Duration(days: 1));
+    final dateId = DateTime(today.year, today.month, today.day).toIso8601String().split('T')[0];
     return _firestore
         .collection('users')
         .doc(userId)
         .collection('attendance')
-        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-        .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
+        .doc(dateId)
         .snapshots()
-        .map((snapshot) => snapshot.docs.isNotEmpty ? AttendanceRecord.fromFirestore(snapshot.docs.first) : null);
+        .map((snapshot) => snapshot.exists ? AttendanceRecord.fromFirestore(snapshot) : null);
   }
 }
