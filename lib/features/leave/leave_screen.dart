@@ -173,7 +173,6 @@ class _LeaveScreenState extends ConsumerState<LeaveScreen> {
                 error: (e, _) => Text('Error: $e', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.error)),
               ),
               // Action Buttons
-              SizedBox(height: screenHeight * 0.02),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
