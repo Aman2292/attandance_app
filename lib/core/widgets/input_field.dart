@@ -4,6 +4,7 @@ import '../constants.dart';
 class AppInputField extends StatelessWidget {
   final String labelText;
   final String? hintText;
+  
   final TextEditingController? controller;
   final bool obscureText;
   final Widget? prefixIcon;

@@ -17,12 +17,12 @@ class ApproveLeaveScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Approve Leaves', style: AppTextStyles.heading2),
+        title:  Text('Approve Leaves', style: AppTextStyles.heading2),
         backgroundColor: AppColors.primary,
       ),
       body: pendingLeavesAsync.when(
         data: (leaves) => leaves.isEmpty
-            ? const Center(child: Text('No pending leaves', style: AppTextStyles.bodyMedium))
+            ?  Center(child: Text('No pending leaves', style: AppTextStyles.bodyMedium))
             : ListView.builder(
                 padding: const EdgeInsets.all(16.0),
                 itemCount: leaves.length,

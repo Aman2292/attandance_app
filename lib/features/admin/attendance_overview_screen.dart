@@ -28,12 +28,12 @@ class AttendanceOverviewScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Attendance Overview', style: AppTextStyles.heading2),
+        title:  Text('Attendance Overview', style: AppTextStyles.heading2),
         backgroundColor: AppColors.primary,
       ),
       body: attendanceAsync.when(
         data: (records) => records.isEmpty
-            ? const Center(child: Text('No attendance records', style: AppTextStyles.bodyMedium))
+            ?  Center(child: Text('No attendance records', style: AppTextStyles.bodyMedium))
             : ListView.builder(
                 padding: const EdgeInsets.all(16.0),
                 itemCount: records.length,

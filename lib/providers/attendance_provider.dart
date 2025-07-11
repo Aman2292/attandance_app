@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-// import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/attendance_record.dart';
 import '../services/attendance_service.dart';
 
@@ -9,13 +8,23 @@ final attendanceProvider =
   return service.getTodayAttendance(userId);
 });
 
-final attendanceSummaryProvider = FutureProvider.family
-    .autoDispose<Map<String, int>, Map<String, dynamic>>((ref, params) {
+final attendanceRecordsProvider =
+    StreamProvider.family<List<AttendanceRecord>, String>((ref, userId) {
   final service = AttendanceService();
+  return service.getAttendanceRecords(userId);
+});
+
+final attendanceSummaryStreamProvider = StreamProvider.family<Map<String, int>, Map<String, dynamic>>((ref, params) {
   final userId = params['userId'] as String;
   final start = params['start'] as DateTime;
   final end = params['end'] as DateTime;
-  return service.getAttendanceSummary(userId, start, end);
+  final service = AttendanceService();
+  return service.getAttendanceSummaryStream(userId, start, end);
+});
+
+final attendanceNotifierProvider =
+    StateNotifierProvider.family<AttendanceNotifier, void, String>((ref, userId) {
+  return AttendanceNotifier(userId);
 });
 
 class AttendanceNotifier extends StateNotifier<void> {
@@ -60,8 +69,3 @@ class AttendanceNotifier extends StateNotifier<void> {
     }
   }
 }
-
-final attendanceNotifierProvider =
-    StateNotifierProvider.family<AttendanceNotifier, void, String>((ref, userId) {
-  return AttendanceNotifier(userId);
-});

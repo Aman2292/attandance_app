@@ -17,7 +17,7 @@ class AttendanceListScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Attendance History'),
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.secondary,
       ),
       body: attendanceRecords.when(
         data: (records) {

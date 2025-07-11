@@ -1,0 +1,80 @@
+[
+  {
+    "date": "2025-01-26T00:00:00Z",
+    "title": "Republic Day",
+    "subtitle": "National holiday",
+    "icon": "🇮🇳"
+  },
+  {
+    "date": "2025-02-26T00:00:00Z",
+    "title": "Maha Shivaratri",
+    "subtitle": "Central Govt & Bank holiday",
+    "icon": "🙏"
+  },
+  {
+    "date": "2025-03-14T00:00:00Z",
+    "title": "Holi",
+    "subtitle": "Festival of Colors",
+    "icon": "🎉"
+  },
+  {
+    "date": "2025-03-31T00:00:00Z",
+    "title": "Id‑ul‑Fitr",
+    "subtitle": "Central Govt & Bank holiday",
+    "icon": "🕌"
+  },
+  {
+    "date": "2025-04-10T00:00:00Z",
+    "title": "Mahavir Jayanti",
+    "subtitle": "Central Govt holiday",
+    "icon": "🕉️"
+  },
+  {
+    "date": "2025-04-18T00:00:00Z",
+    "title": "Good Friday",
+    "subtitle": "Central Govt & Bank holiday",
+    "icon": "✝️"
+  },
+  {
+    "date": "2025-05-01T00:00:00Z",
+    "title": "May Day",
+    "subtitle": "International Labour Day",
+    "icon": "🛠️"
+  },
+  {
+    "date": "2025-06-07T00:00:00Z",
+    "title": "Bakrid (Eid al‑Adha)",
+    "subtitle": "Central Govt & Bank holiday",
+    "icon": "🐐"
+  },
+  {
+    "date": "2025-07-06T00:00:00Z",
+    "title": "Muharram",
+    "subtitle": "Islamic New Year observance",
+    "icon": "🕌"
+  },
+  {
+    "date": "2025-08-15T00:00:00Z",
+    "title": "Independence Day",
+    "subtitle": "National holiday",
+    "icon": "🇮🇳"
+  },
+  {
+    "date": "2025-10-02T00:00:00Z",
+    "title": "Gandhi Jayanti",
+    "subtitle": "National holiday",
+    "icon": "🕊️"
+  },
+  {
+    "date": "2025-10-20T00:00:00Z",
+    "title": "Diwali",
+    "subtitle": "Festival of Lights",
+    "icon": "🪔"
+  },
+  {
+    "date": "2025-12-25T00:00:00Z",
+    "title": "Christmas Day",
+    "subtitle": "Holiday",
+    "icon": "🎄"
+  }
+]

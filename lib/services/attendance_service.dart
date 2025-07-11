@@ -168,6 +168,16 @@ class AttendanceService {
     }
   }
 
+  Stream<Map<String, int>> getAttendanceSummaryStream(String userId, DateTime start, DateTime end) {
+    return getAttendanceForRange(userId, start, end).map((records) {
+      return {
+        'present': records.where((r) => r.status == 'present').length,
+        'late': records.where((r) => r.status == 'late').length,
+        'absent': records.where((r) => r.status == 'absent').length,
+      };
+    });
+  }
+
   Stream<AttendanceRecord?> getTodayAttendance(String userId) {
     final today = DateTime.now();
     final dateId = DateTime(today.year, today.month, today.day).toIso8601String().split('T')[0];

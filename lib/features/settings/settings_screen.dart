@@ -13,7 +13,7 @@ class SettingsScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Settings', style: AppTextStyles.heading2),
+        title:  Text('Settings', style: AppTextStyles.heading2),
         backgroundColor: AppColors.primary,
       ),
       body: Padding(
@@ -23,7 +23,7 @@ class SettingsScreen extends StatelessWidget {
           children: [
             ListTile(
               leading: const Icon(Iconsax.user),
-              title: const Text('Edit Profile', style: AppTextStyles.bodyLarge),
+              title:  Text('Edit Profile', style: AppTextStyles.bodyLarge),
               onTap: () {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Edit Profile clicked')),
@@ -32,7 +32,7 @@ class SettingsScreen extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Iconsax.moon),
-              title: const Text('Toggle Theme', style: AppTextStyles.bodyLarge),
+              title:  Text('Toggle Theme', style: AppTextStyles.bodyLarge),
               trailing: const Icon(Iconsax.arrow_right_3),
               onTap: () {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -42,7 +42,7 @@ class SettingsScreen extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Iconsax.logout),
-              title: const Text('Logout', style: AppTextStyles.bodyLarge),
+              title:  Text('Logout', style: AppTextStyles.bodyLarge),
               onTap: () {
                 showDialog(
                   context: context,

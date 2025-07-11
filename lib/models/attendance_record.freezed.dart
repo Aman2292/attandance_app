@@ -327,6 +327,12 @@ class _AttendanceRecord implements AttendanceRecord {
   String toString() {
     return 'AttendanceRecord(id: $id, userId: $userId, date: $date, status: $status, notes: $notes, createdAt: $createdAt, checkInTime: $checkInTime, checkOutTime: $checkOutTime, breakStartTime: $breakStartTime, breakEndTime: $breakEndTime, totalBreakDuration: $totalBreakDuration, isLate: $isLate, withinOfficeRadius: $withinOfficeRadius)';
   }
+  
+  @override
+  where(bool Function(dynamic r) param0) {
+    // TODO: implement where
+    throw UnimplementedError();
+  }
 }
 
 /// @nodoc

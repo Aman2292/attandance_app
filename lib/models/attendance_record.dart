@@ -33,6 +33,8 @@ abstract class AttendanceRecord with _$AttendanceRecord {
           : (data['totalBreakDuration'] ?? 0),
     );
   }
+
+  where(bool Function(dynamic r) param0) {}
 }
 
 class TimestampConverter implements JsonConverter<DateTime?, Timestamp?> {

@@ -40,7 +40,7 @@ class AdminDashboardScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Admin Dashboard', style: AppTextStyles.heading2),
+        title:  Text('Admin Dashboard', style: AppTextStyles.heading2),
         backgroundColor: AppColors.primary,
         actions: [
           IconButton(
@@ -54,7 +54,7 @@ class AdminDashboardScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Overview', style: AppTextStyles.heading3),
+             Text('Overview', style: AppTextStyles.heading3),
             const SizedBox(height: 16),
             usersAsync.when(
               data: (users) => Card(
@@ -76,10 +76,10 @@ class AdminDashboardScreen extends ConsumerWidget {
               error: (e, _) => Text('Error: $e', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.error)),
             ),
             const SizedBox(height: 16),
-            const Text('Pending Leave Requests', style: AppTextStyles.bodyLarge),
+             Text('Pending Leave Requests', style: AppTextStyles.bodyLarge),
             pendingLeavesAsync.when(
               data: (leaves) => leaves.isEmpty
-                  ? const Text('No pending leaves', style: AppTextStyles.bodyMedium)
+                  ?  Text('No pending leaves', style: AppTextStyles.bodyMedium)
                   : ListView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
@@ -104,7 +104,7 @@ class AdminDashboardScreen extends ConsumerWidget {
             ElevatedButton(
               style: AppButtonStyles.primaryButton,
               onPressed: () => context.go('/admin/attendance-overview'),
-              child: const Text('View Attendance', style: AppTextStyles.button),
+              child:  Text('View Attendance', style: AppTextStyles.button),
             ),
           ],
         ),

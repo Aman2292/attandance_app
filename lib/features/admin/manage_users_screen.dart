@@ -85,12 +85,12 @@ class ManageUsersScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Manage Users', style: AppTextStyles.heading2),
+        title:  Text('Manage Users', style: AppTextStyles.heading2),
         backgroundColor: AppColors.primary,
       ),
       body: usersAsync.when(
         data: (users) => users.isEmpty
-            ? const Center(child: Text('No users found', style: AppTextStyles.bodyMedium))
+            ?  Center(child: Text('No users found', style: AppTextStyles.bodyMedium))
             : ListView.builder(
                 padding: const EdgeInsets.all(16.0),
                 itemCount: users.length,

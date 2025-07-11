@@ -1,3 +1,5 @@
+// ignore_for_file: unused_result
+
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -179,9 +181,9 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         ref.watch(attendanceNotifierProvider(userId).notifier);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+     backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Attendance', style: TextStyle(fontSize: 20)),
+        title:  Text('Attendance', style: AppTextStyles.heading2),
         backgroundColor: AppColors.primary,
         elevation: 0,
       ),
@@ -200,7 +202,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Text('Start Time', style: AppTextStyles.heading3),
+                    Text('Mark Your Attendance', style: AppTextStyles.heading3),
                     const SizedBox(height: 8),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -241,7 +243,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                       },
                     ),
                     const SizedBox(height: 10),
-                    
+
                     ClipRRect(
                       borderRadius: BorderRadius.circular(16),
                       child: SizedBox(
@@ -259,7 +261,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                                 TileLayer(
                                   urlTemplate:
                                       'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                  subdomains: const ['a', 'b', 'c'],
+                                  subdomains: ['a', 'b', 'c'],
                                 ),
                                 CircleLayer(
                                   circles: [
@@ -303,7 +305,8 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                         final isAfter930 =
                             now.hour > 9 || (now.hour == 9 && now.minute >= 30);
 
-                        if (attendance == null || attendance.checkInTime == null) {
+                        if (attendance == null ||
+                            attendance.checkInTime == null) {
                           return ElevatedButton.icon(
                             onPressed: _isWithinRange
                                 ? () async {
@@ -313,8 +316,11 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                                     await attendanceNotifier.checkIn(
                                         withinOfficeRadius: _isWithinRange,
                                         notes: notes);
-                                    await Future.delayed(const Duration(milliseconds: 500)); // Allow stream to update
-                                    ref.refresh(attendanceProvider(userId)); // Force refresh
+                                    await Future.delayed(const Duration(
+                                        milliseconds:
+                                            500)); // Allow stream to update
+                                    ref.refresh(attendanceProvider(
+                                        userId)); // Force refresh
                                   }
                                 : null,
                             icon: const Icon(Icons.fingerprint),
@@ -343,19 +349,24 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                                   onPressed: _isWithinRange
                                       ? () async {
                                           await attendanceNotifier.startBreak();
-                                          await Future.delayed(const Duration(milliseconds: 500)); // Allow stream to update
-                                          ref.refresh(attendanceProvider(userId)); // Force refresh
+                                          await Future.delayed(const Duration(
+                                              milliseconds:
+                                                  500)); // Allow stream to update
+                                          ref.refresh(attendanceProvider(
+                                              userId)); // Force refresh
                                         }
                                       : null,
                                   icon: const Icon(Icons.pause),
                                   label: const Text('Start Break'),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        _isWithinRange ? Colors.orange : Colors.grey,
+                                    backgroundColor: _isWithinRange
+                                        ? Colors.orange
+                                        : Colors.grey,
                                     padding: const EdgeInsets.symmetric(
                                         vertical: 12, horizontal: 32),
                                     shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12)),
+                                        borderRadius:
+                                            BorderRadius.circular(12)),
                                     textStyle: const TextStyle(fontSize: 16),
                                   ),
                                 ),
@@ -365,19 +376,24 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                                   onPressed: _isWithinRange
                                       ? () async {
                                           await attendanceNotifier.endBreak();
-                                          await Future.delayed(const Duration(milliseconds: 500)); // Allow stream to update
-                                          ref.refresh(attendanceProvider(userId)); // Force refresh
+                                          await Future.delayed(const Duration(
+                                              milliseconds:
+                                                  500)); // Allow stream to update
+                                          ref.refresh(attendanceProvider(
+                                              userId)); // Force refresh
                                         }
                                       : null,
                                   icon: const Icon(Icons.play_arrow),
                                   label: const Text('End Break'),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        _isWithinRange ? Colors.orange : Colors.grey,
+                                    backgroundColor: _isWithinRange
+                                        ? Colors.orange
+                                        : Colors.grey,
                                     padding: const EdgeInsets.symmetric(
                                         vertical: 12, horizontal: 32),
                                     shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12)),
+                                        borderRadius:
+                                            BorderRadius.circular(12)),
                                     textStyle: const TextStyle(fontSize: 16),
                                   ),
                                 ),
@@ -387,19 +403,24 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                                   onPressed: _isWithinRange
                                       ? () async {
                                           await attendanceNotifier.checkOut();
-                                          await Future.delayed(const Duration(milliseconds: 500)); // Allow stream to update
-                                          ref.refresh(attendanceProvider(userId)); // Force refresh
+                                          await Future.delayed(const Duration(
+                                              milliseconds:
+                                                  500)); // Allow stream to update
+                                          ref.refresh(attendanceProvider(
+                                              userId)); // Force refresh
                                         }
                                       : null,
                                   icon: const Icon(Icons.logout),
                                   label: const Text('Checkout'),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        _isWithinRange ? Colors.red : Colors.grey,
+                                    backgroundColor: _isWithinRange
+                                        ? Colors.red
+                                        : Colors.grey,
                                     padding: const EdgeInsets.symmetric(
                                         vertical: 12, horizontal: 32),
                                     shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12)),
+                                        borderRadius:
+                                            BorderRadius.circular(12)),
                                   ),
                                 ),
                               if (attendance.breakEndTime != null)

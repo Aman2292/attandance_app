@@ -10,7 +10,7 @@ class LeaveHistoryScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Leave History', style: AppTextStyles.heading2),
+        title:  Text('Leave History', style: AppTextStyles.heading2),
         backgroundColor: AppColors.primary,
       ),
       body: const Padding(

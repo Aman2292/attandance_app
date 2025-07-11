@@ -96,7 +96,7 @@ class _SignupScreenState extends State<SignupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Sign Up', style: AppTextStyles.heading2)),
+      appBar: AppBar(title: Text('Sign Up', style: AppTextStyles.heading2)),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -132,7 +132,7 @@ class _SignupScreenState extends State<SignupScreen> {
             ElevatedButton(
               style: AppButtonStyles.primaryButton,
               onPressed: _signUp,
-              child: const Text('Sign Up', style: AppTextStyles.button),
+              child:  Text('Sign Up', style: AppTextStyles.button),
             ),
             const SizedBox(height: 16),
             TextButton(

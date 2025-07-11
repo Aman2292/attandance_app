@@ -40,15 +40,29 @@ class _ApplyLeaveScreenState extends ConsumerState<ApplyLeaveScreen> {
   }
 
   Future<void> _applyLeave() async {
+    final userId = ref.read(authServiceProvider).currentUser?.uid;
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User not authenticated')),
+      );
+      return;
+    }
     if (_leaveType == null || _startDate == null || _endDate == null || _reasonController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill all fields')),
       );
       return;
     }
+    if (_startDate!.isAfter(_endDate!)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Start date must be before end date')),
+      );
+      return;
+    }
     try {
+      print('Applying leave for userId: $userId, type: $_leaveType, start: $_startDate, end: $_endDate, reason: ${_reasonController.text}');
       await ref.read(leaveServiceProvider).applyLeave(
-            userId: ref.read(authServiceProvider).currentUser!.uid,
+            userId: userId,
             type: _leaveType!,
             startDate: _startDate!,
             endDate: _endDate!,
@@ -59,6 +73,7 @@ class _ApplyLeaveScreenState extends ConsumerState<ApplyLeaveScreen> {
       );
       context.pop();
     } catch (e) {
+      print('Leave application failed: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')),
       );
@@ -70,7 +85,7 @@ class _ApplyLeaveScreenState extends ConsumerState<ApplyLeaveScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Apply Leave', style: AppTextStyles.heading2),
+        title: Text('Apply Leave', style: AppTextStyles.heading2),
         backgroundColor: AppColors.primary,
       ),
       body: SingleChildScrollView(
@@ -87,35 +102,35 @@ class _ApplyLeaveScreenState extends ConsumerState<ApplyLeaveScreen> {
               onChanged: (value) => setState(() => _leaveType = value),
             ),
             const SizedBox(height: 16),
-            AppInputField(
-              labelText: 'Start Date',
+            TextFormField(
+              decoration: AppInputDecorations.textFieldDecoration(labelText: 'Start Date')
+                  .copyWith(prefixIcon: const Icon(Iconsax.calendar)),
               controller: TextEditingController(
                   text: _startDate != null ? DateFormat('yyyy-MM-dd').format(_startDate!) : ''),
-              // readOnly: true,
-              // onTap: () => _selectDate(context, true),
-              prefixIcon: const Icon(Iconsax.calendar),
+              readOnly: true,
+              onTap: () => _selectDate(context, true),
             ),
             const SizedBox(height: 16),
-            AppInputField(
-              labelText: 'End Date',
+            TextFormField(
+              decoration: AppInputDecorations.textFieldDecoration(labelText: 'End Date')
+                  .copyWith(prefixIcon: const Icon(Iconsax.calendar)),
               controller: TextEditingController(
                   text: _endDate != null ? DateFormat('yyyy-MM-dd').format(_endDate!) : ''),
-              // readOnly: true,
-              // onTap: () => _selectDate(context, false),
-              prefixIcon: const Icon(Iconsax.calendar),
+              readOnly: true,
+              onTap: () => _selectDate(context, false),
             ),
             const SizedBox(height: 16),
             AppInputField(
               labelText: 'Reason',
               controller: _reasonController,
-              // maxLines: 3,
+              
               prefixIcon: const Icon(Iconsax.note),
             ),
             const SizedBox(height: 24),
             ElevatedButton(
               style: AppButtonStyles.primaryButton,
               onPressed: _applyLeave,
-              child: const Text('Apply', style: AppTextStyles.button),
+              child: Text('Apply', style: AppTextStyles.button),
             ),
           ],
         ),

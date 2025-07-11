@@ -44,11 +44,11 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Reports', style: AppTextStyles.heading2),
+        title:  Text('Reports', style: AppTextStyles.heading2),
         backgroundColor: AppColors.primary,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -62,18 +62,18 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () => _selectDate(context, false),
-                  style: AppButtonStyles.outlinedButton,
+                  style: AppButtonStyles.outlinedButton ,
                   child: Text('End: ${DateFormat('yyyy-MM-dd').format(_endDate)}'),
                 ),
               ],
             ),
             const SizedBox(height: 24),
-            const Text('Attendance Report', style: AppTextStyles.heading3),
+             Text('Attendance Report', style: AppTextStyles.heading3),
             const SizedBox(height: 16),
             Expanded(
               child: Consumer(
                 builder: (context, ref, _) {
-                  final summary = ref.watch(attendanceSummaryProvider({
+                  final summary = ref.watch(attendanceSummaryStreamProvider({
                     'userId': userId,
                     'start': _startDate,
                     'end': _endDate,
