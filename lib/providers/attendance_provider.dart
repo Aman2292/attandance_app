@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/attendance_record.dart';
 import '../services/attendance_service.dart';
 
@@ -7,6 +8,28 @@ final attendanceProvider =
   final service = AttendanceService();
   return service.getTodayAttendance(userId);
 });
+
+final workingHoursStreamProvider = StreamProvider.family<List<Map<String, dynamic>>, Map<String, dynamic>>((ref, params) {
+  final service = AttendanceService();
+  final userId = params['userId'] as String;
+  final start = params['start'] as DateTime;
+  final end = params['end'] as DateTime;
+  return service.getAttendanceForRange(userId, start, end).map((records) {
+    return records.map((r) {
+      double hours = 0;
+      if (r.checkInTime != null && r.checkOutTime != null) {
+        final duration = r.checkOutTime!.difference(r.checkInTime!);
+        hours = duration.inMinutes / 60.0 - (r.totalBreakDuration / 3600.0);
+        if (hours < 0) hours = 0;
+      }
+      return {
+        'date': r.date,
+        'hours': double.parse(hours.toStringAsFixed(2)),
+      };
+    }).toList();
+  });
+});
+
 
 final attendanceRecordsProvider =
     StreamProvider.family<List<AttendanceRecord>, String>((ref, userId) {

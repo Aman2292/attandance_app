@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:iconsax/iconsax.dart';
 import '../../core/constants.dart';
 import '../../providers/user_provider.dart';
 import '../../providers/attendance_provider.dart';
@@ -16,8 +17,10 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
-  String _filter = 'today'; // Default filter: today
+  String _filter = 'today';
   Timer? _timeUpdateTimer;
+  Timer? _checkInTimer;
+  Duration _elapsedTime = Duration.zero;
 
   @override
   void initState() {
@@ -31,6 +34,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   void dispose() {
     _timeUpdateTimer?.cancel();
+    _checkInTimer?.cancel();
     super.dispose();
   }
 
@@ -43,21 +47,45 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Future<String?> _showNotesDialog() async {
+    TextEditingController notesController = TextEditingController();
     return showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Reason for Lateness'),
-        content: TextField(
-          decoration: const InputDecoration(hintText: 'Enter notes (e.g., Traffic delay)'),
-          onChanged: (value) {},
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Iconsax.clock, color: AppColors.warning, size: 24),
+            const SizedBox(width: 8),
+            const Text('Late Check-in'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Please provide a reason for checking in after 9:30 AM',
+              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: notesController,
+              maxLines: 3,
+              decoration: AppInputDecorations.textFieldDecoration(
+                labelText: 'Reason',
+                hintText: 'e.g., Traffic delay, Medical appointment',
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, 'Traffic delay'),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, notesController.text),
+            style: AppButtonStyles.primaryButton,
             child: const Text('Submit'),
           ),
         ],
@@ -65,351 +93,674 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
+  void _startCheckInTimer(DateTime? checkInTime) {
+    if (checkInTime != null) {
+      _checkInTimer?.cancel();
+      _checkInTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        final now = DateTime.now();
+        setState(() {
+          _elapsedTime = now.difference(checkInTime);
+        });
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final userAsync = ref.watch(userProvider);
     final userId = ref.watch(authServiceProvider).currentUser?.uid ?? '';
     final todayAttendanceAsync = ref.watch(attendanceProvider(userId));
-    final attendanceSummaryAsync = ref.watch(attendanceSummaryStreamProvider({
-      'userId': userId,
-      'start': _filter == 'today'
-          ? DateTime.now().subtract(const Duration(days: 0))
-          : _filter == '7days'
-          ? DateTime.now().subtract(const Duration(days: 7))
-          : _filter == 'days'
-          ? DateTime.now().subtract(const Duration(days: 30))
-          : DateTime.now().subtract(const Duration(days: 365)),
-      'end': DateTime.now(),
-    }));
-    final attendanceNotifier = ref.watch(attendanceNotifierProvider(userId).notifier);
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: userAsync.when(
-        data: (user) {
-          if (user == null) {
-            context.go('/login');
-            return const SizedBox();
-          }
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: AppColors.primary,
+        title: Row(
+          children: [
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: Colors.white,
+              child: Text(
+                userAsync.valueOrNull?.name.substring(0, 1).toUpperCase() ?? '',
+                style: AppTextStyles.heading2.copyWith(color: AppColors.primary),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 40),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(user.name, style: AppTextStyles.heading3),
-                            Text(user.role, style: AppTextStyles.bodySmall),
-                          ],
-                        ),
-                      ],
-                    ),
-                    
-                  ],
+                Text(
+                  userAsync.valueOrNull?.name ?? '',
+                  style: AppTextStyles.heading2.copyWith(color: Colors.white),
                 ),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text("Today's Attendance", style: AppTextStyles.heading3),
-                    Text(
-                      DateFormat('EEEE, dd MMM yyyy').format(DateTime.now()),
-                      style: AppTextStyles.bodyMedium,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color.fromARGB(255, 0, 0, 0),
-                        blurRadius: 6,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 24),
-                  child: Column(
-                    children: [
-                      todayAttendanceAsync.when(
-                        data: (attendance) {
-                          final now = DateTime.now();
-                          final hours = now.hour.toString().padLeft(2, '0');
-                          final minutes = now.minute.toString().padLeft(2, '0');
-                          final isAm = now.hour < 12;
-                          return Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              TimeDisplay(time: hours),
-                              TimeDisplay(time: minutes),
-                              TimeDisplay(time: isAm ? 'AM' : 'PM'),
-                            ],
-                          );
-                        },
-                        loading: () => const CircularProgressIndicator(),
-                        error: (e, _) => Text('Error: $e',
-                            style: AppTextStyles.bodyMedium
-                                .copyWith(color: AppColors.error)),
-                      ),
-                      const SizedBox(height: 10),
-                      todayAttendanceAsync.when(
-                        data: (attendance) {
-                          final now = DateTime.now();
-                          final isAfter930 = now.hour > 9 ||
-                              (now.hour == 9 && now.minute >= 30);
-                          if (attendance == null || attendance.checkInTime == null) {
-                            return ElevatedButton(
-                              onPressed: () async {
-                                final notes = isAfter930
-                                    ? await _showNotesDialog()
-                                    : null;
-                                await attendanceNotifier.checkIn(
-                                    withinOfficeRadius: true,
-                                    notes: notes);
-                                context.go('/attendance');
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                              ),
-                              child: const Text('Check In'),
-                            );
-                          } else if (attendance.checkOutTime == null) {
-                            return Column(
-                              children: [
-                                Text(
-                                  'Checked in at: ${DateFormat('HH:mm').format(attendance.checkInTime!)}',
-                                  style: AppTextStyles.bodySmall,
-                                ),
-                                const SizedBox(height: 10),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    ElevatedButton(
-                                      onPressed: () async {
-                                        await attendanceNotifier.startBreak();
-                                        context.go('/attendance');
-                                      },
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppColors.primary,
-                                      ),
-                                      child: const Text('Start Break'),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    ElevatedButton(
-                                      onPressed: () {
-                                        context.go('/attendance');
-                                      },
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppColors.primary,
-                                      ),
-                                      child: const Text('Checkout'),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            );
-                          } else {
-                            return Column(
-                              children: [
-                                Text(
-                                  'Checked in at: ${DateFormat('HH:mm').format(attendance.checkInTime!)}',
-                                  style: AppTextStyles.bodySmall,
-                                ),
-                                Text(
-                                  'Checked out at: ${DateFormat('HH:mm').format(attendance.checkOutTime!)}',
-                                  style: AppTextStyles.bodySmall,
-                                ),
-                                const SizedBox(height: 10),
-                                Text(
-                                  'Attendance Completed',
-                                  style: AppTextStyles.bodySmall
-                                      .copyWith(color: Colors.green),
-                                ),
-                              ],
-                            );
-                          }
-                        },
-                        loading: () => const CircularProgressIndicator(),
-                        error: (e, _) => Text('Error: $e',
-                            style: AppTextStyles.bodyMedium
-                                .copyWith(color: AppColors.error)),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                // Row(
-                //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                //   children: [
-                //     Text('Total Attendance (Days)',
-                //         style: AppTextStyles.heading3),
-                //     DropdownButton<String>(
-                //       value: _filter,
-                //       items: [
-                //         DropdownMenuItem(
-                //             value: 'today',
-                //             child: Text('Today',
-                //                 style: AppTextStyles.bodySmall)),
-                //         DropdownMenuItem(
-                //             value: '7days',
-                //             child: Text('Last 7 Days',
-                //                 style: AppTextStyles.bodySmall)),
-                //         DropdownMenuItem(
-                //             value: 'days',
-                //             child: Text('Last 30 Days',
-                //                 style: AppTextStyles.bodySmall)),
-                //         DropdownMenuItem(
-                //             value: 'months',
-                //             child: Text('Last 12 Months',
-                //                 style: AppTextStyles.bodySmall)),
-                //       ],
-                //       onChanged: (value) {
-                //         if (value != null) {
-                //           setState(() {
-                //             _filter = value;
-                //           });
-                //         }
-                //       },
-                //     ),
-                //   ],
-                // ),
-                // const SizedBox(height: 12),
-                // attendanceSummaryAsync.when(
-                //   data: (summary) {
-                //     final present = summary['present'] ?? 0;
-                //     final late = summary['late'] ?? 0;
-                //     final absent = summary['absent'] ?? 0;
-                //     return Row(
-                //       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                //       children: [
-                //         SummaryBox(
-                //           title: 'Present',
-                //           count: present,
-                //           color: AppColors.present,
-                //         ),
-                //         SummaryBox(
-                //           title: 'Late',
-                //           count: late,
-                //           color: AppColors.late,
-                //         ),
-                //         SummaryBox(
-                //           title: 'Absent',
-                //           count: absent,
-                //           color: AppColors.absent,
-                //         ),
-                //       ],
-                //     );
-                //   },
-                //   loading: () =>
-                //       const Center(child: CircularProgressIndicator()),
-                //   error: (e, _) => Text(
-                //     'Error: $e',
-                //     style: AppTextStyles.bodyMedium
-                //         .copyWith(color: AppColors.error),
-                //   ),
-                // ),
-                const SizedBox(height: 24),
-                Text('Leave Balance', style: AppTextStyles.heading3),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    SummaryBox(
-                      title: 'Paid',
-                      count: user.leaveBalance.paidLeave,
-                      color: Colors.blue,
-                    ),
-                    SummaryBox(
-                      title: 'Sick',
-                      count: user.leaveBalance.sickLeave,
-                      color: Colors.purple,
-                    ),
-                    SummaryBox(
-                      title: 'Earned',
-                      count: user.leaveBalance.earnedLeave,
-                      color: Colors.teal,
-                    ),
-                  ],
+                Text(
+                  userAsync.valueOrNull?.role ?? '',
+                  style: AppTextStyles.bodySmall.copyWith(color: Colors.white70),
                 ),
               ],
             ),
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
-          child: Text(
-            'Error: $e',
-            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.error),
+          ],
+        ),
+      ),
+      body: SafeArea(
+        child: userAsync.when(
+          data: (user) {
+            if (user == null) {
+              context.go('/login');
+              return const SizedBox();
+            }
+
+            return RefreshIndicator(
+              onRefresh: () async {
+                ref.invalidate(userProvider);
+                ref.invalidate(attendanceProvider(userId));
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  children: [
+                    // Header Section removed as part of app bar update
+                    
+                    // Main Content
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          // Current Time Card
+                          _buildCurrentTimeCard(),
+                          
+                          const SizedBox(height: 20),
+                          
+                          // Attendance Card
+                          _buildAttendanceCard(todayAttendanceAsync),
+                          
+                          const SizedBox(height: 20),
+                          
+                          // Leave Balance
+                          _buildLeaveBalance(user),
+                          
+                          const SizedBox(height: 20),
+                          
+                          // Today's Schedule
+                          _buildTodaySchedule(),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Iconsax.info_circle, size: 64, color: AppColors.error),
+                const SizedBox(height: 16),
+                Text('Something went wrong', style: AppTextStyles.heading3),
+                const SizedBox(height: 8),
+                Text('$e', style: AppTextStyles.bodyMedium),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    ref.invalidate(userProvider);
+                  },
+                  style: AppButtonStyles.primaryButton,
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
-}
 
-class TimeDisplay extends StatelessWidget {
-  final String time;
-  const TimeDisplay({super.key, required this.time});
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildCurrentTimeCard() {
+    final now = DateTime.now();
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.textHint,
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                DateFormat('EEEE').format(now),
+                style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+              ),
+              Text(
+                DateFormat('dd MMM yyyy').format(now),
+                style: AppTextStyles.heading3,
+              ),
+            ],
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                DateFormat('HH:mm').format(now),
+                style: AppTextStyles.heading1.copyWith(color: AppColors.primary),
+              ),
+              Text(
+                DateFormat('a').format(now),
+                style: AppTextStyles.bodySmall,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAttendanceCard(AsyncValue todayAttendanceAsync) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Icon(Iconsax.clock, color: AppColors.primary, size: 24),
+                const SizedBox(width: 8),
+                Text("Today's Attendance", style: AppTextStyles.heading3),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: todayAttendanceAsync.when(
+              data: (attendance) => _buildAttendanceContent(attendance),
+              loading: () => const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: CircularProgressIndicator(),
+                ),
+              ),
+              error: (e, _) => Center(
+                child: Column(
+                  children: [
+                    Icon(Iconsax.info_circle, color: AppColors.error, size: 32),
+                    const SizedBox(height: 8),
+                    Text('Error loading attendance', style: AppTextStyles.bodyMedium),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAttendanceContent(attendance) {
+    if (attendance != null && attendance.checkOutTime != null) {
+      // Checked out
+      _checkInTimer?.cancel();
+      final checkOutTime = attendance.checkOutTime!;
+      final checkInTime = attendance.checkInTime!;
+      final workedDuration = checkOutTime.difference(checkInTime);
+      final breakDuration = attendance.breakEndTime != null && attendance.breakStartTime != null
+          ? attendance.breakEndTime!.difference(attendance.breakStartTime!)
+          : Duration.zero;
+
+      return Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.success.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Icon(Iconsax.check, color: AppColors.success, size: 32),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Work Completed',
+                        style: AppTextStyles.heading3.copyWith(color: AppColors.success),
+                      ),
+                      Text(
+                        'You have successfully checked out for today',
+                        style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _buildTimeInfo(
+                  'Check In',
+                  DateFormat('HH:mm').format(checkInTime),
+                  Iconsax.login,
+                  AppColors.info,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildTimeInfo(
+                  'Check Out',
+                  DateFormat('HH:mm').format(checkOutTime),
+                  Iconsax.logout,
+                  AppColors.success,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _buildTimeInfo(
+                  'Total Work',
+                  '${workedDuration.inHours}h ${workedDuration.inMinutes.remainder(60)}m',
+                  Iconsax.clock,
+                  AppColors.primary,
+                ),
+              ),
+              if (breakDuration.inMinutes > 0) ...[
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildTimeInfo(
+                    'Break Time',
+                    '${breakDuration.inHours}h ${breakDuration.inMinutes.remainder(60)}m',
+                    Iconsax.clock,
+                    AppColors.warning,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      );
+    } else if (attendance != null && attendance.checkInTime != null) {
+      // Checked in, working
+      _startCheckInTimer(attendance.checkInTime);
+      final checkedInTime = attendance.checkInTime!;
+      final now = DateTime.now();
+      final workedDuration = now.difference(checkedInTime);
+      final overtime = workedDuration.inMinutes > 540
+          ? Duration(minutes: workedDuration.inMinutes - 540)
+          : Duration.zero;
+
+      return Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppColors.primary.withOpacity(0.1), AppColors.primary.withOpacity(0.05)],
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Iconsax.play, color: AppColors.primary, size: 32),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Currently Working',
+                      style: AppTextStyles.heading3.copyWith(color: AppColors.primary),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  '${workedDuration.inHours}h ${workedDuration.inMinutes.remainder(60)}m',
+                  style: AppTextStyles.heading1.copyWith(color: AppColors.primary),
+                ),
+                if (overtime.inMinutes > 0) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.warning.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Text(
+                      'Overtime: ${overtime.inHours}h ${overtime.inMinutes.remainder(60)}m',
+                      style: AppTextStyles.bodySmall.copyWith(color: AppColors.warning),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildTimeInfo(
+            'Checked In At',
+            DateFormat('HH:mm').format(checkedInTime),
+            Iconsax.login,
+            AppColors.success,
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: attendance.checkOutTime != null ? null : () {
+                    context.go('/employee/attendance');
+                  },
+                  icon: const Icon(Iconsax.element_plus, size: 20),
+                  label: const Text('Start Break'),
+                  style: AppButtonStyles.secondaryButton,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: attendance.checkOutTime != null ? null : () {
+                    context.go('/employee/attendance');
+                  },
+                  icon: const Icon(Iconsax.logout, size: 20),
+                  label: const Text('Check Out'),
+                  style: AppButtonStyles.primaryButton,
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    } else {
+      // Not checked in
+      final now = DateTime.now();
+      final isAfter930 = now.hour > 9 || (now.hour == 9 && now.minute >= 30);
+      
+      return Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppColors.info.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              children: [
+                Icon(Iconsax.clock, color: AppColors.info, size: 48),
+                const SizedBox(height: 16),
+                Text(
+                  'Ready to Start Your Day?',
+                  style: AppTextStyles.heading3.copyWith(color: AppColors.info),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Tap the button below to check in',
+                  style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                ),
+                if (isAfter930) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.warning.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Iconsax.warning_2, color: AppColors.warning, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'You\'re checking in after 9:30 AM. Please provide a reason.',
+                            style: AppTextStyles.bodySmall.copyWith(color: AppColors.warning),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () async {
+                final notes = isAfter930 ? await _showNotesDialog() : null;
+                if (!isAfter930 || notes != null) {
+                  context.go('/employee/attendance');
+                }
+              },
+              icon: const Icon(Iconsax.login, size: 24),
+              label: const Text('Check In'),
+              style: AppButtonStyles.primaryButton.copyWith(
+                padding: MaterialStateProperty.all(const EdgeInsets.all(16)),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+  }
+
+  Widget _buildTimeInfo(String label, String time, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Text(time, style: AppTextStyles.heading2),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 8),
+          Text(
+            time,
+            style: AppTextStyles.heading3.copyWith(color: color),
+          ),
+          Text(
+            label,
+            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLeaveBalance(user) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Iconsax.calendar, color: AppColors.primary, size: 24),
+              const SizedBox(width: 8),
+              Text('Leave Balance', style: AppTextStyles.heading3),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: EnhancedSummaryBox(
+                  title: 'Paid Leave',
+                  count: user.leaveBalance.paidLeave,
+                  icon: Iconsax.sun,
+                  color: AppColors.info,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: EnhancedSummaryBox(
+                  title: 'Sick Leave',
+                  count: user.leaveBalance.sickLeave,
+                  icon: Iconsax.health,
+                  color: AppColors.error,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: EnhancedSummaryBox(
+                  title: 'Earned Leave',
+                  count: user.leaveBalance.earnedLeave,
+                  icon: Iconsax.star,
+                  color: AppColors.success,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTodaySchedule() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Iconsax.calendar_2, color: AppColors.primary, size: 24),
+              const SizedBox(width: 8),
+              Text('Today\'s Schedule', style: AppTextStyles.heading3),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildScheduleItem('Work Hours', '9:00 AM - 6:00 PM', Iconsax.briefcase),
+          _buildScheduleItem('Break Time', '12:00 PM - 1:00 PM', Iconsax.coffee),
+          _buildScheduleItem('Team Meeting', '2:00 PM - 3:00 PM', Iconsax.people),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScheduleItem(String title, String time, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: AppColors.primary, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppTextStyles.bodyMedium),
+                Text(
+                  time,
+                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class SummaryBox extends StatelessWidget {
+class EnhancedSummaryBox extends StatelessWidget {
   final String title;
   final int count;
+  final IconData icon;
   final Color color;
-  const SummaryBox({
+
+  const EnhancedSummaryBox({
     super.key,
     required this.title,
     required this.count,
+    required this.icon,
     required this.color,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 100,
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 4,
-            offset: Offset(0, 2),
-          ),
-        ],
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text('$count', style: AppTextStyles.heading1.copyWith(color: color)),
+          Icon(icon, color: color, size: 28),
           const SizedBox(height: 8),
-          Text(title, style: AppTextStyles.bodySmall),
+          Text(
+            '$count',
+            style: AppTextStyles.heading2.copyWith(color: color),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );

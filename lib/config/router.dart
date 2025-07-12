@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/signup_screen.dart';
 import '../features/dashboard/dashboard_screen.dart';
@@ -25,20 +27,39 @@ final authService = AuthService();
 final routerConfig = GoRouter(
   initialLocation: '/login',
   redirect: (context, state) async {
-    final user = authService.currentUser;
+    final prefs = await SharedPreferences.getInstance();
+    final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+    final user = FirebaseAuth.instance.currentUser; // Use FirebaseAuth directly
+
+    // Wait for auth state to settle (optional delay if needed)
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    // If no user and not on login/signup page, redirect to login
     if (user == null && state.matchedLocation != '/login' && state.matchedLocation != '/signup') {
+      await prefs.setBool('isLoggedIn', false); // Clear flag if not authenticated
       return '/login';
     }
 
+    // If user exists, redirect based on role
     if (user != null) {
+      await prefs.setBool('isLoggedIn', true); // Sync flag with auth state
       final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
       if (userDoc.exists) {
         final userModel = UserModel.fromFirestore(userDoc);
-        if (userModel.role == 'employee' && state.matchedLocation.startsWith('/admin')) {
+        if (userModel.role == 'employee' && !state.matchedLocation.startsWith('/employee') && !state.matchedLocation.startsWith('/admin')) {
           return '/employee';
+        } else if (userModel.role == 'admin' && !state.matchedLocation.startsWith('/admin') && !state.matchedLocation.startsWith('/employee')) {
+          return '/admin';
         }
       }
     }
+
+    // If flag is true but user is null (e.g., token expired), clear flag and redirect
+    if (user == null && isLoggedIn) {
+      await prefs.setBool('isLoggedIn', false);
+      return '/login';
+    }
+
     return null;
   },
   routes: [

@@ -144,7 +144,7 @@ class AppButtonStyles {
     foregroundColor: AppColors.primary,
     textStyle: AppTextStyles.button.copyWith(color: AppColors.primary),
     side: const BorderSide(color: AppColors.primary),
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
   );
 

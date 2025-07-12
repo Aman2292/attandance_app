@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants.dart';
 import '../../core/widgets/input_field.dart';
 import '../../services/auth_service.dart';
@@ -25,6 +26,8 @@ class _LoginScreenState extends State<LoginScreen> {
         password: _passwordController.text.trim(),
       );
       if (user != null && mounted) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('isLoggedIn', true); // Set login state
         context.go(user.role == 'admin' ? '/admin' : '/employee');
       }
     } catch (e) {
@@ -65,7 +68,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ElevatedButton(
               style: AppButtonStyles.primaryButton,
               onPressed: _signIn,
-              child:  Text('Sign In', style: AppTextStyles.button),
+              child: Text('Sign In', style: AppTextStyles.button),
             ),
             const SizedBox(height: 16),
             TextButton(

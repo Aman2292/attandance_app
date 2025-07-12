@@ -39,12 +39,13 @@ class _LeaveScreenState extends ConsumerState<LeaveScreen> {
   }
 
   void _onViewChanged(ViewChangedDetails details) {
-    // Find the middle date to get the correct displayed month
-    final middleIndex = (details.visibleDates.length / 2).floor();
-    final middleDate = details.visibleDates[middleIndex];
+  final middleIndex = (details.visibleDates.length / 2).floor();
+  final middleDate = details.visibleDates[middleIndex];
+  WidgetsBinding.instance.addPostFrameCallback((_) {
     _currentMonth.value = DateTime(middleDate.year, middleDate.month);
     _updateHolidays();
-  }
+  });
+}
 
   @override
   void dispose() {

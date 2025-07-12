@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants.dart';
 import '../../core/widgets/input_field.dart';
 import '../../services/auth_service.dart';
@@ -64,6 +65,8 @@ class _SignupScreenState extends State<SignupScreen> {
         role: 'employee', // Only employees
       );
       if (user != null && mounted) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('isLoggedIn', true); // Set login state
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Registration Successful')),
         );
@@ -132,7 +135,7 @@ class _SignupScreenState extends State<SignupScreen> {
             ElevatedButton(
               style: AppButtonStyles.primaryButton,
               onPressed: _signUp,
-              child:  Text('Sign Up', style: AppTextStyles.button),
+              child: Text('Sign Up', style: AppTextStyles.button),
             ),
             const SizedBox(height: 16),
             TextButton(
