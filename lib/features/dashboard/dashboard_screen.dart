@@ -160,8 +160,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 child: Column(
                   children: [
-                    // Header Section removed as part of app bar update
-                    
                     // Main Content
                     Padding(
                       padding: const EdgeInsets.all(16),
@@ -179,11 +177,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           
                           // Leave Balance
                           _buildLeaveBalance(user),
-                          
-                          const SizedBox(height: 20),
-                          
-                          // Today's Schedule
-                          _buildTodaySchedule(),
                         ],
                       ),
                     ),
@@ -254,11 +247,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                DateFormat('HH:mm').format(now),
+                DateFormat('hh:mm').format(now), // Changed to 12-hour format
                 style: AppTextStyles.heading1.copyWith(color: AppColors.primary),
               ),
               Text(
-                DateFormat('a').format(now),
+                DateFormat('a').format(now), // AM/PM
                 style: AppTextStyles.bodySmall,
               ),
             ],
@@ -323,7 +316,75 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildAttendanceContent(attendance) {
-    if (attendance != null && attendance.checkOutTime != null) {
+    // For a new user (no checkInTime), all buttons only navigate
+    if (attendance == null || attendance.checkInTime == null) {
+      return Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppColors.info.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              children: [
+                Icon(Iconsax.clock, color: AppColors.info, size: 48),
+                const SizedBox(height: 16),
+                Text(
+                  'Ready to Start Your Day?',
+                  style: AppTextStyles.heading3.copyWith(color: AppColors.info),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Tap the button below to check in',
+                  style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                context.go('/employee/attendance');
+              },
+              icon: const Icon(Iconsax.login, size: 24),
+              label: const Text('Check In'),
+              style: AppButtonStyles.primaryButton.copyWith(
+                padding: MaterialStateProperty.all(const EdgeInsets.all(16)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    context.go('/employee/attendance');
+                  },
+                  icon: const Icon(Iconsax.element_plus, size: 20),
+                  label: const Text('Start Break'),
+                  style: AppButtonStyles.secondaryButton,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    context.go('/employee/attendance');
+                  },
+                  icon: const Icon(Iconsax.logout, size: 20),
+                  label: const Text('Check Out'),
+                  style: AppButtonStyles.primaryButton,
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    } else if (attendance.checkOutTime != null) {
       // Checked out
       _checkInTimer?.cancel();
       final checkOutTime = attendance.checkOutTime!;
@@ -411,7 +472,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ),
         ],
       );
-    } else if (attendance != null && attendance.checkInTime != null) {
+    } else {
       // Checked in, working
       _startCheckInTimer(attendance.checkInTime);
       final checkedInTime = attendance.checkInTime!;
@@ -478,7 +539,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             children: [
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: attendance.checkOutTime != null ? null : () {
+                  onPressed: () {
                     context.go('/employee/attendance');
                   },
                   icon: const Icon(Iconsax.element_plus, size: 20),
@@ -489,7 +550,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: attendance.checkOutTime != null ? null : () {
+                  onPressed: () {
                     context.go('/employee/attendance');
                   },
                   icon: const Icon(Iconsax.logout, size: 20),
@@ -498,76 +559,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ),
               ),
             ],
-          ),
-        ],
-      );
-    } else {
-      // Not checked in
-      final now = DateTime.now();
-      final isAfter930 = now.hour > 9 || (now.hour == 9 && now.minute >= 30);
-      
-      return Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: AppColors.info.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              children: [
-                Icon(Iconsax.clock, color: AppColors.info, size: 48),
-                const SizedBox(height: 16),
-                Text(
-                  'Ready to Start Your Day?',
-                  style: AppTextStyles.heading3.copyWith(color: AppColors.info),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Tap the button below to check in',
-                  style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
-                ),
-                if (isAfter930) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.warning.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Iconsax.warning_2, color: AppColors.warning, size: 20),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'You\'re checking in after 9:30 AM. Please provide a reason.',
-                            style: AppTextStyles.bodySmall.copyWith(color: AppColors.warning),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () async {
-                final notes = isAfter930 ? await _showNotesDialog() : null;
-                if (!isAfter930 || notes != null) {
-                  context.go('/employee/attendance');
-                }
-              },
-              icon: const Icon(Iconsax.login, size: 24),
-              label: const Text('Check In'),
-              style: AppButtonStyles.primaryButton.copyWith(
-                padding: MaterialStateProperty.all(const EdgeInsets.all(16)),
-              ),
-            ),
           ),
         ],
       );
@@ -653,71 +644,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ),
               ),
             ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTodaySchedule() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Iconsax.calendar_2, color: AppColors.primary, size: 24),
-              const SizedBox(width: 8),
-              Text('Today\'s Schedule', style: AppTextStyles.heading3),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _buildScheduleItem('Work Hours', '9:00 AM - 6:00 PM', Iconsax.briefcase),
-          _buildScheduleItem('Break Time', '12:00 PM - 1:00 PM', Iconsax.coffee),
-          _buildScheduleItem('Team Meeting', '2:00 PM - 3:00 PM', Iconsax.people),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildScheduleItem(String title, String time, IconData icon) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: AppColors.primary, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: AppTextStyles.bodyMedium),
-                Text(
-                  time,
-                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
-                ),
-              ],
-            ),
           ),
         ],
       ),
