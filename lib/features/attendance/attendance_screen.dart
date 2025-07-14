@@ -376,7 +376,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                _TimeBlock(text: DateFormat('HH').format(DateTime.now())),
+                                _TimeBlock(text: DateFormat('h').format(DateTime.now())),
                                 const SizedBox(width: 8),
                                 Text(
                                   ':',

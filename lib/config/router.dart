@@ -115,7 +115,7 @@ final routerConfig = GoRouter(
               routes: [
                 GoRoute(
                   path: 'apply',
-                  builder: (context, state) => const ApplyLeaveScreen(),
+                  builder: (context, state) =>  ApplyLeaveScreen(),
                 ),
                 GoRoute(
                   path: 'history',

@@ -17,11 +17,12 @@ T _$identity<T>(T value) => value;
 mixin _$LeaveRecord {
   String get id;
   String get userId;
-  String get type; // 'paid', 'sick', 'earned'
+  String get type; // e.g., 'sick', 'casual', 'earned'
   DateTime get startDate;
   DateTime get endDate;
   String get status; // 'pending', 'approved', 'rejected'
   String get reason;
+  String? get rejectionReason; // Added to support rejection reasons
   @TimestampConverter()
   DateTime? get createdAt;
 
@@ -48,6 +49,8 @@ mixin _$LeaveRecord {
             (identical(other.endDate, endDate) || other.endDate == endDate) &&
             (identical(other.status, status) || other.status == status) &&
             (identical(other.reason, reason) || other.reason == reason) &&
+            (identical(other.rejectionReason, rejectionReason) ||
+                other.rejectionReason == rejectionReason) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt));
   }
@@ -55,11 +58,11 @@ mixin _$LeaveRecord {
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(runtimeType, id, userId, type, startDate,
-      endDate, status, reason, createdAt);
+      endDate, status, reason, rejectionReason, createdAt);
 
   @override
   String toString() {
-    return 'LeaveRecord(id: $id, userId: $userId, type: $type, startDate: $startDate, endDate: $endDate, status: $status, reason: $reason, createdAt: $createdAt)';
+    return 'LeaveRecord(id: $id, userId: $userId, type: $type, startDate: $startDate, endDate: $endDate, status: $status, reason: $reason, rejectionReason: $rejectionReason, createdAt: $createdAt)';
   }
 }
 
@@ -77,6 +80,7 @@ abstract mixin class $LeaveRecordCopyWith<$Res> {
       DateTime endDate,
       String status,
       String reason,
+      String? rejectionReason,
       @TimestampConverter() DateTime? createdAt});
 }
 
@@ -99,6 +103,7 @@ class _$LeaveRecordCopyWithImpl<$Res> implements $LeaveRecordCopyWith<$Res> {
     Object? endDate = null,
     Object? status = null,
     Object? reason = null,
+    Object? rejectionReason = freezed,
     Object? createdAt = freezed,
   }) {
     return _then(_self.copyWith(
@@ -130,6 +135,10 @@ class _$LeaveRecordCopyWithImpl<$Res> implements $LeaveRecordCopyWith<$Res> {
           ? _self.reason
           : reason // ignore: cast_nullable_to_non_nullable
               as String,
+      rejectionReason: freezed == rejectionReason
+          ? _self.rejectionReason
+          : rejectionReason // ignore: cast_nullable_to_non_nullable
+              as String?,
       createdAt: freezed == createdAt
           ? _self.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
@@ -149,6 +158,7 @@ class _LeaveRecord implements LeaveRecord {
       required this.endDate,
       required this.status,
       this.reason = '',
+      this.rejectionReason,
       @TimestampConverter() this.createdAt});
   factory _LeaveRecord.fromJson(Map<String, dynamic> json) =>
       _$LeaveRecordFromJson(json);
@@ -159,7 +169,7 @@ class _LeaveRecord implements LeaveRecord {
   final String userId;
   @override
   final String type;
-// 'paid', 'sick', 'earned'
+// e.g., 'sick', 'casual', 'earned'
   @override
   final DateTime startDate;
   @override
@@ -170,6 +180,9 @@ class _LeaveRecord implements LeaveRecord {
   @override
   @JsonKey()
   final String reason;
+  @override
+  final String? rejectionReason;
+// Added to support rejection reasons
   @override
   @TimestampConverter()
   final DateTime? createdAt;
@@ -202,6 +215,8 @@ class _LeaveRecord implements LeaveRecord {
             (identical(other.endDate, endDate) || other.endDate == endDate) &&
             (identical(other.status, status) || other.status == status) &&
             (identical(other.reason, reason) || other.reason == reason) &&
+            (identical(other.rejectionReason, rejectionReason) ||
+                other.rejectionReason == rejectionReason) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt));
   }
@@ -209,11 +224,11 @@ class _LeaveRecord implements LeaveRecord {
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(runtimeType, id, userId, type, startDate,
-      endDate, status, reason, createdAt);
+      endDate, status, reason, rejectionReason, createdAt);
 
   @override
   String toString() {
-    return 'LeaveRecord(id: $id, userId: $userId, type: $type, startDate: $startDate, endDate: $endDate, status: $status, reason: $reason, createdAt: $createdAt)';
+    return 'LeaveRecord(id: $id, userId: $userId, type: $type, startDate: $startDate, endDate: $endDate, status: $status, reason: $reason, rejectionReason: $rejectionReason, createdAt: $createdAt)';
   }
 }
 
@@ -233,6 +248,7 @@ abstract mixin class _$LeaveRecordCopyWith<$Res>
       DateTime endDate,
       String status,
       String reason,
+      String? rejectionReason,
       @TimestampConverter() DateTime? createdAt});
 }
 
@@ -255,6 +271,7 @@ class __$LeaveRecordCopyWithImpl<$Res> implements _$LeaveRecordCopyWith<$Res> {
     Object? endDate = null,
     Object? status = null,
     Object? reason = null,
+    Object? rejectionReason = freezed,
     Object? createdAt = freezed,
   }) {
     return _then(_LeaveRecord(
@@ -286,6 +303,10 @@ class __$LeaveRecordCopyWithImpl<$Res> implements _$LeaveRecordCopyWith<$Res> {
           ? _self.reason
           : reason // ignore: cast_nullable_to_non_nullable
               as String,
+      rejectionReason: freezed == rejectionReason
+          ? _self.rejectionReason
+          : rejectionReason // ignore: cast_nullable_to_non_nullable
+              as String?,
       createdAt: freezed == createdAt
           ? _self.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable

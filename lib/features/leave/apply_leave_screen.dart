@@ -5,8 +5,9 @@ import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart';
 import '../../core/constants.dart';
 import '../../core/widgets/input_field.dart';
-import '../../providers/leave_provider.dart';
+import '../../providers/holiday_provider.dart';
 import '../../providers/user_provider.dart';
+import '../../services/leave_service.dart';
 
 class ApplyLeaveScreen extends ConsumerStatefulWidget {
   const ApplyLeaveScreen({super.key});
@@ -20,6 +21,7 @@ class _ApplyLeaveScreenState extends ConsumerState<ApplyLeaveScreen> {
   String? _leaveType;
   DateTime? _startDate;
   DateTime? _endDate;
+  bool _isSubmitting = false;
 
   Future<void> _selectDate(BuildContext context, bool isStart) async {
     final picked = await showDatePicker(
@@ -40,27 +42,51 @@ class _ApplyLeaveScreenState extends ConsumerState<ApplyLeaveScreen> {
   }
 
   Future<void> _applyLeave() async {
+    setState(() => _isSubmitting = true);
     final userId = ref.read(authServiceProvider).currentUser?.uid;
     if (userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('User not authenticated')),
       );
+      setState(() => _isSubmitting = false);
       return;
     }
     if (_leaveType == null || _startDate == null || _endDate == null || _reasonController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill all fields')),
       );
+      setState(() => _isSubmitting = false);
       return;
     }
     if (_startDate!.isAfter(_endDate!)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Start date must be before end date')),
       );
+      setState(() => _isSubmitting = false);
+      return;
+    }
+    if (_startDate!.weekday == DateTime.sunday || _endDate!.weekday == DateTime.sunday) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Leave cannot be applied on Sundays')),
+      );
+      setState(() => _isSubmitting = false);
+      return;
+    }
+    // Check for holidays
+    final holidaysAsync = ref.read(holidayProvider);
+    final holidays = holidaysAsync.whenData((holidays) => holidays).valueOrNull ?? [];
+    final isHoliday = holidays.any((holiday) {
+      final holidayDate = (holiday['date'] as DateTime);
+      return (_startDate!.isSameDate(holidayDate) || _endDate!.isSameDate(holidayDate));
+    });
+    if (isHoliday) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Leave cannot be applied on holidays')),
+      );
+      setState(() => _isSubmitting = false);
       return;
     }
     try {
-      print('Applying leave for userId: $userId, type: $_leaveType, start: $_startDate, end: $_endDate, reason: ${_reasonController.text}');
       await ref.read(leaveServiceProvider).applyLeave(
             userId: userId,
             type: _leaveType!,
@@ -73,10 +99,12 @@ class _ApplyLeaveScreenState extends ConsumerState<ApplyLeaveScreen> {
       );
       context.pop();
     } catch (e) {
-      print('Leave application failed: $e');
+      debugPrint('Leave application failed: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')),
       );
+    } finally {
+      setState(() => _isSubmitting = false);
     }
   }
 
@@ -123,14 +151,22 @@ class _ApplyLeaveScreenState extends ConsumerState<ApplyLeaveScreen> {
             AppInputField(
               labelText: 'Reason',
               controller: _reasonController,
-              
               prefixIcon: const Icon(Iconsax.note),
             ),
             const SizedBox(height: 24),
             ElevatedButton(
               style: AppButtonStyles.primaryButton,
-              onPressed: _applyLeave,
-              child: Text('Apply', style: AppTextStyles.button),
+              onPressed: _isSubmitting ? null : _applyLeave,
+              child: _isSubmitting
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : Text('Apply', style: AppTextStyles.button),
             ),
           ],
         ),
@@ -141,4 +177,10 @@ class _ApplyLeaveScreenState extends ConsumerState<ApplyLeaveScreen> {
 
 extension StringExtension on String {
   String capitalize() => this[0].toUpperCase() + substring(1);
+}
+
+extension DateTimeExtension on DateTime {
+  bool isSameDate(DateTime other) {
+    return year == other.year && month == other.month && day == other.day;
+  }
 }

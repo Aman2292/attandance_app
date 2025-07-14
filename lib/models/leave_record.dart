@@ -9,11 +9,12 @@ abstract class LeaveRecord with _$LeaveRecord {
   const factory LeaveRecord({
     required String id,
     required String userId,
-    required String type, // 'paid', 'sick', 'earned'
+    required String type, // e.g., 'sick', 'casual', 'earned'
     required DateTime startDate,
     required DateTime endDate,
     required String status, // 'pending', 'approved', 'rejected'
     @Default('') String reason,
+    String? rejectionReason, // Added to support rejection reasons
     @TimestampConverter() DateTime? createdAt,
   }) = _LeaveRecord;
 

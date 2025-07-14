@@ -14,6 +14,7 @@ _LeaveRecord _$LeaveRecordFromJson(Map<String, dynamic> json) => _LeaveRecord(
       endDate: DateTime.parse(json['endDate'] as String),
       status: json['status'] as String,
       reason: json['reason'] as String? ?? '',
+      rejectionReason: json['rejectionReason'] as String?,
       createdAt:
           const TimestampConverter().fromJson(json['createdAt'] as Timestamp?),
     );
@@ -27,5 +28,6 @@ Map<String, dynamic> _$LeaveRecordToJson(_LeaveRecord instance) =>
       'endDate': instance.endDate.toIso8601String(),
       'status': instance.status,
       'reason': instance.reason,
+      'rejectionReason': instance.rejectionReason,
       'createdAt': const TimestampConverter().toJson(instance.createdAt),
     };
