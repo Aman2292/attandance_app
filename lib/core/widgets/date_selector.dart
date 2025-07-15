@@ -7,20 +7,43 @@ class DateSelector extends StatelessWidget {
   final DateTime startDate;
   final DateTime endDate;
   final Function(DateTime, DateTime) onDateRangeChanged;
+  final List<DateTime>? availableDates; // List of dates with attendance data
 
   const DateSelector({
     super.key,
     required this.startDate,
     required this.endDate,
     required this.onDateRangeChanged,
+    this.availableDates,
   });
 
   Future<void> _selectDate(BuildContext context, bool isStart) async {
+    if (availableDates == null || availableDates!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No attendance data available to select dates.'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    // Sort available dates and find the min and max
+    final sortedDates = availableDates!..sort((a, b) => a.compareTo(b));
+    final firstAvailableDate = sortedDates.first;
+    final lastAvailableDate = sortedDates.last;
+
     final picked = await showDatePicker(
       context: context,
       initialDate: isStart ? startDate : endDate,
-      firstDate: DateTime.now().subtract(const Duration(days: 365)),
-      lastDate: DateTime.now(),
+      firstDate: firstAvailableDate,
+      lastDate: lastAvailableDate,
+      selectableDayPredicate: (date) {
+        return availableDates!.any((availableDate) =>
+            date.year == availableDate.year &&
+            date.month == availableDate.month &&
+            date.day == availableDate.day);
+      },
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -48,14 +71,17 @@ class DateSelector extends StatelessWidget {
     required VoidCallback onTap,
   }) {
     return InkWell(
-      onTap: onTap,
+      onTap: availableDates == null || availableDates!.isEmpty ? null : onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           border: Border.all(color: AppColors.primary.withOpacity(0.3)),
           borderRadius: BorderRadius.circular(12),
+          color: availableDates == null || availableDates!.isEmpty
+              ? AppColors.textHint.withOpacity(0.1)
+              : null,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -80,6 +106,9 @@ class DateSelector extends StatelessWidget {
                     DateFormat('dd MMM yyyy').format(date),
                     style: AppTextStyles.bodyMedium.copyWith(
                       fontWeight: FontWeight.w600,
+                      color: availableDates == null || availableDates!.isEmpty
+                          ? AppColors.textHint
+                          : null,
                     ),
                   ),
                 ),
@@ -94,7 +123,7 @@ class DateSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),

@@ -21,8 +21,16 @@ class _SignupScreenState extends State<SignupScreen> {
   final _confirmPasswordController = TextEditingController();
   final _authService = AuthService();
   String? _errorMessage;
+  bool _isPasswordVisible = false;
+  bool _isConfirmPasswordVisible = false;
+  bool _isLoading = false;
 
   Future<void> _signUp() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
     String name = _nameController.text.trim();
     String email = _emailController.text.trim();
     String password = _passwordController.text.trim();
@@ -32,6 +40,7 @@ class _SignupScreenState extends State<SignupScreen> {
     if (name.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
       setState(() {
         _errorMessage = 'Please fill all fields';
+        _isLoading = false;
       });
       return;
     }
@@ -39,6 +48,7 @@ class _SignupScreenState extends State<SignupScreen> {
     if (!RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$').hasMatch(email)) {
       setState(() {
         _errorMessage = 'Please enter a valid email address';
+        _isLoading = false;
       });
       return;
     }
@@ -46,6 +56,7 @@ class _SignupScreenState extends State<SignupScreen> {
     if (password.length < 6) {
       setState(() {
         _errorMessage = 'Password must be at least 6 characters long';
+        _isLoading = false;
       });
       return;
     }
@@ -53,6 +64,7 @@ class _SignupScreenState extends State<SignupScreen> {
     if (password != confirmPassword) {
       setState(() {
         _errorMessage = 'Passwords do not match';
+        _isLoading = false;
       });
       return;
     }
@@ -66,9 +78,18 @@ class _SignupScreenState extends State<SignupScreen> {
       );
       if (user != null && mounted) {
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('isLoggedIn', true); // Set login state
+        await prefs.setBool('isLoggedIn', true);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Registration Successful')),
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Iconsax.tick_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                Text('Registration Successful'),
+              ],
+            ),
+            backgroundColor: AppColors.success,
+          ),
         );
         context.go('/employee');
       }
@@ -92,67 +113,184 @@ class _SignupScreenState extends State<SignupScreen> {
       setState(() {
         _errorMessage = 'Error saving user data: $e';
       });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: Text('Sign Up', style: AppTextStyles.heading2)),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            AppInputField(
-              labelText: 'Name',
-              controller: _nameController,
-              prefixIcon: const Icon(Iconsax.user),
-            ),
-            const SizedBox(height: 16),
-            AppInputField(
-              labelText: 'Email',
-              controller: _emailController,
-              keyboardType: TextInputType.emailAddress,
-              prefixIcon: const Icon(Iconsax.sms),
-            ),
-            const SizedBox(height: 16),
-            AppInputField(
-              labelText: 'Password',
-              controller: _passwordController,
-              obscureText: true,
-              prefixIcon: const Icon(Iconsax.lock),
-            ),
-            const SizedBox(height: 16),
-            AppInputField(
-              labelText: 'Confirm Password',
-              controller: _confirmPasswordController,
-              obscureText: true,
-              prefixIcon: const Icon(Iconsax.lock),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              style: AppButtonStyles.primaryButton,
-              onPressed: _signUp,
-              child: Text('Sign Up', style: AppTextStyles.button),
-            ),
-            const SizedBox(height: 16),
-            TextButton(
-              style: AppButtonStyles.textButton,
-              onPressed: () => context.go('/login'),
-              child: const Text('Already have an account? Log In'),
-            ),
-            if (_errorMessage != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 16),
-                child: Text(
-                  _errorMessage!,
-                  style: AppTextStyles.bodyMedium.copyWith(color: AppColors.error),
-                  textAlign: TextAlign.center,
-                ),
+      body: SafeArea(
+        child: Card(
+          elevation: 0, // Minimal elevation for seamless look
+          margin: EdgeInsets.zero, // No margins to cover full screen
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero), // No rounded corners
+          child: Container(
+            width: MediaQuery.of(context).size.width, // Full screen width
+            height: MediaQuery.of(context).size.height, // Full screen height
+            color: AppColors.background, // Match Scaffold background
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Logo or Header
+                  // Image.asset(
+                  //   'assets/images/Signup.png',
+                  //   height: 350,
+                  //   fit: BoxFit.contain,
+                  // ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Create Account',
+                    style: AppTextStyles.heading2.copyWith(color: AppColors.textPrimary),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Sign up to get started',
+                    style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  // Name Field
+                  AppInputField(
+                    labelText: 'Name',
+                    controller: _nameController,
+                    prefixIcon: const Icon(Iconsax.user, color: AppColors.textSecondary),
+                  ),
+                  const SizedBox(height: 16),
+                  // Email Field
+                  AppInputField(
+                    labelText: 'Email',
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    prefixIcon: const Icon(Iconsax.sms, color: AppColors.textSecondary),
+                  ),
+                  const SizedBox(height: 16),
+                  // Password Field with Visibility Toggle
+                  AppInputField(
+                    labelText: 'Password',
+                    controller: _passwordController,
+                    obscureText: !_isPasswordVisible,
+                    prefixIcon: const Icon(Iconsax.lock, color: AppColors.textSecondary),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _isPasswordVisible ? Iconsax.eye : Iconsax.eye_slash,
+                        color: AppColors.textSecondary,
+                        semanticLabel: _isPasswordVisible ? 'Hide password' : 'Show password',
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _isPasswordVisible = !_isPasswordVisible;
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Confirm Password Field with Visibility Toggle
+                  AppInputField(
+                    labelText: 'Confirm Password',
+                    controller: _confirmPasswordController,
+                    obscureText: !_isConfirmPasswordVisible,
+                    prefixIcon: const Icon(Iconsax.lock, color: AppColors.textSecondary),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _isConfirmPasswordVisible ? Iconsax.eye : Iconsax.eye_slash,
+                        color: AppColors.textSecondary,
+                        semanticLabel: _isConfirmPasswordVisible ? 'Hide confirm password' : 'Show confirm password',
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
+                        });
+                      },
+                    ),
+                  ),
+                 
+                  const SizedBox(height: 16),
+                  // Sign Up Button
+                  ElevatedButton(
+                    style: AppButtonStyles.primaryButton,
+                    onPressed: _isLoading ? null : _signUp,
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : Text('Sign Up', style: AppTextStyles.button),
+                  ),
+                  const SizedBox(height: 16),
+                  // Login Link
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Already have an account?',
+                        style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+                      ),
+                      TextButton(
+                        style: AppButtonStyles.textButton,
+                        onPressed: () => context.go('/login'),
+                        child: Text(
+                          'Log In',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  // Error Message
+                  if (_errorMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 16),
+                      child: AnimatedOpacity(
+                        opacity: _errorMessage != null ? 1.0 : 0.0,
+                        duration: const Duration(milliseconds: 300),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Iconsax.warning_2,
+                              color: AppColors.error,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                _errorMessage!,
+                                style: AppTextStyles.bodySmall.copyWith(color: AppColors.error),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
               ),
-          ],
+            ),
+          ),
         ),
       ),
     );

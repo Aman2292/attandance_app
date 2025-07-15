@@ -1,3 +1,4 @@
+
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,8 +7,10 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../core/constants.dart';
+import '../../models/user_model.dart';
 import '../../providers/user_provider.dart';
 import '../../providers/attendance_provider.dart';
+import '../../services/leave_service.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -17,10 +20,8 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
-  String _filter = 'today';
   Timer? _timeUpdateTimer;
   Timer? _checkInTimer;
-  Duration _elapsedTime = Duration.zero;
 
   @override
   void initState() {
@@ -43,63 +44,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final userId = ref.read(authServiceProvider).currentUser?.uid;
     if (userId != null) {
       await prefs.setString('userId', userId);
+      // Sync leave balance on initialization
+      await ref.read(leaveServiceProvider).syncLeaveBalance(userId);
     }
   }
 
-  Future<String?> _showNotesDialog() async {
-    TextEditingController notesController = TextEditingController();
-    return showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Icon(Iconsax.clock, color: AppColors.warning, size: 24),
-            const SizedBox(width: 8),
-            const Text('Late Check-in'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Please provide a reason for checking in after 9:30 AM',
-              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: notesController,
-              maxLines: 3,
-              decoration: AppInputDecorations.textFieldDecoration(
-                labelText: 'Reason',
-                hintText: 'e.g., Traffic delay, Medical appointment',
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, notesController.text),
-            style: AppButtonStyles.primaryButton,
-            child: const Text('Submit'),
-          ),
-        ],
-      ),
-    );
-  }
 
   void _startCheckInTimer(DateTime? checkInTime) {
     if (checkInTime != null) {
       _checkInTimer?.cancel();
       _checkInTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-        final now = DateTime.now();
         setState(() {
-          _elapsedTime = now.difference(checkInTime);
         });
       });
     }
@@ -155,27 +110,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               onRefresh: () async {
                 ref.invalidate(userProvider);
                 ref.invalidate(attendanceProvider(userId));
+                await ref.read(leaveServiceProvider).syncLeaveBalance(userId);
               },
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 child: Column(
                   children: [
-                    // Main Content
                     Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(
                         children: [
-                          // Current Time Card
                           _buildCurrentTimeCard(),
-                          
                           const SizedBox(height: 20),
-                          
-                          // Attendance Card
                           _buildAttendanceCard(todayAttendanceAsync),
-                          
                           const SizedBox(height: 20),
-                          
-                          // Leave Balance
                           _buildLeaveBalance(user),
                         ],
                       ),
@@ -247,11 +195,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                DateFormat('hh:mm').format(now), // Changed to 12-hour format
+                DateFormat('h:mm').format(now),
                 style: AppTextStyles.heading1.copyWith(color: AppColors.primary),
               ),
               Text(
-                DateFormat('a').format(now), // AM/PM
+                DateFormat('a').format(now),
                 style: AppTextStyles.bodySmall,
               ),
             ],
@@ -316,7 +264,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildAttendanceContent(attendance) {
-    // For a new user (no checkInTime), all buttons only navigate
     if (attendance == null || attendance.checkInTime == null) {
       return Column(
         children: [
@@ -385,7 +332,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ],
       );
     } else if (attendance.checkOutTime != null) {
-      // Checked out
       _checkInTimer?.cancel();
       final checkOutTime = attendance.checkOutTime!;
       final checkInTime = attendance.checkInTime!;
@@ -473,7 +419,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ],
       );
     } else {
-      // Checked in, working
       _startCheckInTimer(attendance.checkInTime);
       final checkedInTime = attendance.checkInTime!;
       final now = DateTime.now();
@@ -530,7 +475,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           const SizedBox(height: 16),
           _buildTimeInfo(
             'Checked In At',
-            DateFormat('HH:mm').format(checkedInTime),
+            DateFormat('h:mm a').format(checkedInTime),
             Iconsax.login,
             AppColors.success,
           ),
@@ -589,7 +534,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildLeaveBalance(user) {
+  Widget _buildLeaveBalance(UserModel user) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),

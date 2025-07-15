@@ -30,16 +30,16 @@ class SettingsScreen extends StatelessWidget {
                 );
               },
             ),
-            ListTile(
-              leading: const Icon(Iconsax.moon),
-              title:  Text('Toggle Theme', style: AppTextStyles.bodyLarge),
-              trailing: const Icon(Iconsax.arrow_right_3),
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Theme switch clicked')),
-                );
-              },
-            ),
+            // ListTile(
+            //   leading: const Icon(Iconsax.moon),
+            //   title:  Text('Toggle Theme', style: AppTextStyles.bodyLarge),
+            //   trailing: const Icon(Iconsax.arrow_right_3),
+            //   onTap: () {
+            //     ScaffoldMessenger.of(context).showSnackBar(
+            //       const SnackBar(content: Text('Theme switch clicked')),
+            //     );
+            //   },
+            // ),
             ListTile(
               leading: const Icon(Iconsax.logout),
               title:  Text('Logout', style: AppTextStyles.bodyLarge),

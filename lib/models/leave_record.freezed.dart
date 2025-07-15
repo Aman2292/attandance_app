@@ -18,11 +18,13 @@ mixin _$LeaveRecord {
   String get id;
   String get userId;
   String get type; // e.g., 'sick', 'casual', 'earned'
+  @IsoDateConverter()
   DateTime get startDate;
+  @IsoDateConverter()
   DateTime get endDate;
   String get status; // 'pending', 'approved', 'rejected'
   String get reason;
-  String? get rejectionReason; // Added to support rejection reasons
+  String? get rejectionReason;
   @TimestampConverter()
   DateTime? get createdAt;
 
@@ -76,8 +78,8 @@ abstract mixin class $LeaveRecordCopyWith<$Res> {
       {String id,
       String userId,
       String type,
-      DateTime startDate,
-      DateTime endDate,
+      @IsoDateConverter() DateTime startDate,
+      @IsoDateConverter() DateTime endDate,
       String status,
       String reason,
       String? rejectionReason,
@@ -154,8 +156,8 @@ class _LeaveRecord implements LeaveRecord {
       {required this.id,
       required this.userId,
       required this.type,
-      required this.startDate,
-      required this.endDate,
+      @IsoDateConverter() required this.startDate,
+      @IsoDateConverter() required this.endDate,
       required this.status,
       this.reason = '',
       this.rejectionReason,
@@ -171,8 +173,10 @@ class _LeaveRecord implements LeaveRecord {
   final String type;
 // e.g., 'sick', 'casual', 'earned'
   @override
+  @IsoDateConverter()
   final DateTime startDate;
   @override
+  @IsoDateConverter()
   final DateTime endDate;
   @override
   final String status;
@@ -182,7 +186,6 @@ class _LeaveRecord implements LeaveRecord {
   final String reason;
   @override
   final String? rejectionReason;
-// Added to support rejection reasons
   @override
   @TimestampConverter()
   final DateTime? createdAt;
@@ -244,8 +247,8 @@ abstract mixin class _$LeaveRecordCopyWith<$Res>
       {String id,
       String userId,
       String type,
-      DateTime startDate,
-      DateTime endDate,
+      @IsoDateConverter() DateTime startDate,
+      @IsoDateConverter() DateTime endDate,
       String status,
       String reason,
       String? rejectionReason,

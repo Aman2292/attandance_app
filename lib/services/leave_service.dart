@@ -45,44 +45,39 @@ final allLeavesProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
 class LeaveService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Apply for a leave
   Future<void> applyLeave({
-  required String userId,
-  required String type,
-  required DateTime startDate,
-  required DateTime endDate,
-  required String reason,
-}) async {
-  try {
-    final leaveId = FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .collection('leaves')
-        .doc()
-        .id;
+    required String userId,
+    required String type,
+    required DateTime startDate,
+    required DateTime endDate,
+    required String reason,
+  }) async {
+    try {
+      final leaveId = _firestore.collection('users').doc(userId).collection('leaves').doc().id;
 
-    final leaveRecord = {
-      'id': leaveId,
-      'userId': userId,
-      'type': type,
-      'startDate': startDate,
-      'endDate': endDate,
-      'status': 'pending',
-      'reason': reason,
-      'createdAt': DateTime.now(),
-    };
+      final leaveRecord = LeaveRecord(
+        id: leaveId,
+        userId: userId,
+        type: type,
+        startDate: startDate,
+        endDate: endDate,
+        status: 'pending',
+        reason: reason,
+        createdAt: DateTime.now(),
+      );
 
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .collection('leaves')
-        .doc(leaveId)
-        .set(leaveRecord);
-  } catch (e) {
-    print('Error applying leave: $e');
-    rethrow;
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('leaves')
+          .doc(leaveId)
+          .set(leaveRecord.toJson());
+      print('Leave applied: ${leaveRecord.toJson()}');
+    } catch (e) {
+      print('Error applying leave: $e');
+      rethrow;
+    }
   }
-}
 
   Stream<List<LeaveRecord>> getLeaveRecords(String userId) {
     return _firestore
@@ -94,7 +89,6 @@ class LeaveService {
         .map((snapshot) => snapshot.docs.map((doc) => LeaveRecord.fromFirestore(doc)).toList());
   }
 
-  // Approve or reject a leave (for admin)
   Future<void> updateLeaveStatus({
     required String userId,
     required String leaveId,
@@ -106,35 +100,50 @@ class LeaveService {
       if (rejectionReason != null && rejectionReason.isNotEmpty) {
         updateData['rejectionReason'] = rejectionReason;
       }
-      await _firestore
+
+      // Update leave status
+      final leaveRef = _firestore
           .collection('users')
           .doc(userId)
           .collection('leaves')
-          .doc(leaveId)
-          .update(updateData);
+          .doc(leaveId);
+      await _firestore.runTransaction((transaction) async {
+        final leaveDoc = await transaction.get(leaveRef);
+        if (!leaveDoc.exists) {
+          throw Exception('Leave document not found: $leaveId');
+        }
+        transaction.update(leaveRef, updateData);
+      });
+      print('Leave status updated: userId=$userId, leaveId=$leaveId, status=$status');
 
       if (status == 'approved') {
-        final leaveDoc = await _firestore
-            .collection('users')
-            .doc(userId)
-            .collection('leaves')
-            .doc(leaveId)
-            .get();
-        final leave = LeaveRecord.fromFirestore(leaveDoc);
-        final days = leave.endDate.difference(leave.startDate).inDays + 1;
+        // Fetch leave and user data within a transaction
+        final userRef = _firestore.collection('users').doc(userId);
+        await _firestore.runTransaction((transaction) async {
+          final leaveDoc = await transaction.get(leaveRef);
+          final userDoc = await transaction.get(userRef);
 
-        final userDoc = await _firestore.collection('users').doc(userId).get();
-        final user = UserModel.fromFirestore(userDoc);
-        final leaveBalance = user.leaveBalance;
+          if (!leaveDoc.exists || !userDoc.exists) {
+            throw Exception('Leave or user document not found');
+          }
 
-        final updatedBalance = leaveBalance.copyWith(
-          paidLeave: leave.type == 'paid' ? leaveBalance.paidLeave - days : leaveBalance.paidLeave,
-          sickLeave: leave.type == 'sick' ? leaveBalance.sickLeave - days : leaveBalance.sickLeave,
-          earnedLeave: leave.type == 'earned' ? leaveBalance.earnedLeave - days : leaveBalance.earnedLeave,
-        );
+          final leave = LeaveRecord.fromFirestore(leaveDoc);
+          final user = UserModel.fromFirestore(userDoc);
+          final leaveBalance = user.leaveBalance;
 
-        await _firestore.collection('users').doc(userId).update({
-          'leaveBalance': updatedBalance.toJson(),
+          // Map 'casual' to 'paid' for leave balance updates
+          final leaveType = leave.type.toLowerCase() == 'casual' ? 'paid' : leave.type.toLowerCase();
+
+          // Deduct 1 from the appropriate leave type
+          final updatedBalance = leaveBalance.copyWith(
+            paidLeave: leaveType == 'paid' ? (leaveBalance.paidLeave > 0 ? leaveBalance.paidLeave - 1 : 0) : leaveBalance.paidLeave,
+            sickLeave: leaveType == 'sick' ? (leaveBalance.sickLeave > 0 ? leaveBalance.sickLeave - 1 : 0) : leaveBalance.sickLeave,
+            earnedLeave: leaveType == 'earned' ? (leaveBalance.earnedLeave > 0 ? leaveBalance.earnedLeave - 1 : 0) : leaveBalance.earnedLeave,
+          );
+
+          print('Updating leave balance: Before=$leaveBalance, After=$updatedBalance');
+          transaction.update(userRef, {'leaveBalance': updatedBalance.toJson()});
+          print('Leave balance updated for userId=$userId: $updatedBalance');
         });
       }
     } catch (e) {
@@ -143,24 +152,57 @@ class LeaveService {
     }
   }
 
-  // Get leave summary for reports
-  Future<Map<String, int>> getLeaveSummary(String userId, DateTime start, DateTime end) async {
+  Future<Map<String, int>> getApprovedLeavesCount(String userId) async {
     try {
       final snapshot = await _firestore
           .collection('users')
           .doc(userId)
           .collection('leaves')
-          .where('startDate', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
-          .where('startDate', isLessThanOrEqualTo: Timestamp.fromDate(end))
+          .where('status', isEqualTo: 'approved')
           .get();
       final records = snapshot.docs.map((doc) => LeaveRecord.fromFirestore(doc)).toList();
-      return {
-        'paid': records.where((r) => r.type == 'paid' && r.status == 'approved').length,
-        'sick': records.where((r) => r.type == 'sick' && r.status == 'approved').length,
-        'earned': records.where((r) => r.type == 'earned' && r.status == 'approved').length,
+      final counts = {
+        'paid': records.where((r) => r.type.toLowerCase() == 'paid' || r.type.toLowerCase() == 'casual').length,
+        'sick': records.where((r) => r.type.toLowerCase() == 'sick').length,
+        'earned': records.where((r) => r.type.toLowerCase() == 'earned').length,
       };
+      print('Approved leaves count for userId=$userId: $counts');
+      return counts;
     } catch (e) {
-      print('Error getting leave summary: $e');
+      print('Error getting approved leaves count: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> syncLeaveBalance(String userId) async {
+    try {
+      final approvedLeaves = await getApprovedLeavesCount(userId);
+      final userDoc = await _firestore.collection('users').doc(userId).get();
+      if (!userDoc.exists) {
+        throw Exception('User document does not exist: $userId');
+      }
+      final user = UserModel.fromFirestore(userDoc);
+
+      // Define initial leave balance based on company policy
+      const initialLeaveBalance = {
+        'paid': 17,
+        'sick': 6,
+        'earned': 0,
+      };
+
+      final updatedBalance = LeaveBalance(
+        paidLeave: initialLeaveBalance['paid']! - approvedLeaves['paid']!,
+        sickLeave: initialLeaveBalance['sick']! - approvedLeaves['sick']!,
+        earnedLeave: initialLeaveBalance['earned']! - approvedLeaves['earned']!,
+      );
+
+      print('Syncing leave balance for userId=$userId: $updatedBalance');
+      await _firestore.collection('users').doc(userId).update({
+        'leaveBalance': updatedBalance.toJson(),
+      });
+      print('Leave balance synced for userId=$userId');
+    } catch (e) {
+      print('Error syncing leave balance: $e');
       rethrow;
     }
   }

@@ -101,9 +101,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                     try {
                       final prefs = await SharedPreferences.getInstance();
                       await prefs.clear(); 
-                      await AuthService().signOut(); // Sign out from Firebase Auth
+                      await AuthService().signOut(); 
                       if (context.mounted) {
-                        context.go('/login'); // Navigate to login
+                        context.go('/login');
                       }
                     } catch (e) {
                       if (context.mounted) {

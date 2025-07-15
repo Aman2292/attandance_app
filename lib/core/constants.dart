@@ -18,7 +18,7 @@
 
   /// Updated Color Scheme
   class AppColors {
-    static const Color primary = Color(0xFF00ADB5);       // Cyan Accent
+    static const Color primary = Color(0xFFE3C9AA);       // Cyan Accent
     static const Color secondary = Color(0xFF393E46);     // Charcoal Surface
     static const Color accent = Color(0xFF00ADB5);        // Accent/Highlight
     static const Color background = Color(0xFFEEEEEE);    // Light Gray

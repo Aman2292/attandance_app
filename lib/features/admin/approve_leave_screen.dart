@@ -6,6 +6,7 @@ import '../../providers/leave_provider.dart';
 import '../../models/leave_record.dart';
 import 'widgets/leave_filter_chips.dart';
 import 'widgets/leave_request_card.dart';
+import '../../providers/user_provider.dart';
 
 class ApproveLeaveScreen extends ConsumerStatefulWidget {
   const ApproveLeaveScreen({super.key});
@@ -16,7 +17,7 @@ class ApproveLeaveScreen extends ConsumerStatefulWidget {
 
 class _ApproveLeaveScreenState extends ConsumerState<ApproveLeaveScreen> {
   String _selectedFilter = 'all';
-  String _selectedStatusFilter = 'all'; // New status filter
+  String _selectedStatusFilter = 'all';
   final Map<String, String> _filterOptions = {
     'all': 'All Types',
     'sick': 'Sick Leave',
@@ -32,7 +33,7 @@ class _ApproveLeaveScreenState extends ConsumerState<ApproveLeaveScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final leavesAsync = ref.watch(allLeavesProvider); // Updated to use allLeavesProvider
+    final leavesAsync = ref.watch(allLeavesProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -63,6 +64,7 @@ class _ApproveLeaveScreenState extends ConsumerState<ApproveLeaveScreen> {
             child: RefreshIndicator(
               onRefresh: () async {
                 ref.refresh(allLeavesProvider);
+                ref.refresh(userProvider); // Refresh user data
               },
               child: leavesAsync.when(
                 data: (leaves) {
@@ -79,8 +81,8 @@ class _ApproveLeaveScreenState extends ConsumerState<ApproveLeaveScreen> {
                       return LeaveRequestCard(
                         leave: leave,
                         onApprove: leave.status == 'pending' ? () => _approveLeave(leave) : null,
-                        onReject: leave.status == 'pending' ? () => _showRejectDialog(context, leave) : null ,
-                        userName: leaveData['userName'] as String? ?? 'Unknown User'
+                        onReject: leave.status == 'pending' ? () => _showRejectDialog(context, leave) : null,
+                        userName: leaveData['userName'] as String? ?? 'Unknown User',
                       );
                     },
                   );
@@ -278,14 +280,15 @@ class _ApproveLeaveScreenState extends ConsumerState<ApproveLeaveScreen> {
             leaveId: leave.id,
             status: 'approved',
           );
-
+      ref.invalidate(userProvider); // Refresh user data for DashboardScreen
+      ref.refresh(allLeavesProvider); // Refresh leave list
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Row(
               children: [
                 Icon(Iconsax.tick_circle, color: Colors.white),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 Text('Leave request approved successfully'),
               ],
             ),
@@ -300,7 +303,7 @@ class _ApproveLeaveScreenState extends ConsumerState<ApproveLeaveScreen> {
             content: Row(
               children: [
                 Icon(Iconsax.warning_2, color: Colors.white),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 Text('Error approving leave: $e'),
               ],
             ),
@@ -308,6 +311,7 @@ class _ApproveLeaveScreenState extends ConsumerState<ApproveLeaveScreen> {
           ),
         );
       }
+      print('Approval error: $e'); // Log error for debugging
     }
   }
 
@@ -317,15 +321,16 @@ class _ApproveLeaveScreenState extends ConsumerState<ApproveLeaveScreen> {
             userId: leave.userId,
             leaveId: leave.id,
             status: 'rejected',
+            rejectionReason: reason.isNotEmpty ? reason : null,
           );
-
+      ref.refresh(allLeavesProvider); // Refresh leave list
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Row(
               children: [
                 Icon(Iconsax.close_circle, color: Colors.white),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 Text('Leave request rejected'),
               ],
             ),
@@ -340,7 +345,7 @@ class _ApproveLeaveScreenState extends ConsumerState<ApproveLeaveScreen> {
             content: Row(
               children: [
                 Icon(Iconsax.warning_2, color: Colors.white),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 Text('Error rejecting leave: $e'),
               ],
             ),
@@ -348,6 +353,7 @@ class _ApproveLeaveScreenState extends ConsumerState<ApproveLeaveScreen> {
           ),
         );
       }
+      print('Rejection error: $e'); // Log error for debugging
     }
   }
 
