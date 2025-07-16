@@ -337,7 +337,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                 'Reports',
                 Iconsax.chart,
                 AppColors.info,
-                () => context.go('/admin/reports'),
+                () => context.go('/admin/report-overview'),
               ),
             ),
           ],

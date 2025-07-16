@@ -6,8 +6,13 @@ import '../../core/constants.dart';
 
 class WorkingHoursChart extends StatelessWidget {
   final List<Map<String, dynamic>> chartData;
+  final double standardWorkingHours;
 
-  const WorkingHoursChart({super.key, required this.chartData});
+  const WorkingHoursChart({
+    super.key, 
+    required this.chartData,
+    this.standardWorkingHours = 9.0,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -76,7 +81,17 @@ class WorkingHoursChart extends StatelessWidget {
       );
     }
 
-    final maxHours = chartData.map((d) => d['hours'] as double).reduce((a, b) => a > b ? a : b);
+    // Calculate the maximum value for all categories
+    final maxHours = chartData.fold<double>(0, (max, data) {
+      final workingHours = data['hours'] as double;
+      final breakHours = (data['breakHours'] as double? ?? 0.0);
+      final regularHours = workingHours <= standardWorkingHours ? workingHours : standardWorkingHours;
+      final overtimeHours = workingHours > standardWorkingHours ? (workingHours - standardWorkingHours) : 0.0;
+      
+      final maxForDay = [regularHours, breakHours, overtimeHours].reduce((a, b) => a > b ? a : b);
+      return maxForDay > max ? maxForDay : max;
+    });
+    
     final maxY = (maxHours * 1.15).ceilToDouble();
 
     return Container(
@@ -236,31 +251,7 @@ class WorkingHoursChart extends StatelessWidget {
                   for (int i = 0; i < chartData.length; i++)
                     BarChartGroupData(
                       x: i,
-                      barRods: [
-                        BarChartRodData(
-                          toY: chartData[i]['hours'] as double,
-                          gradient: LinearGradient(
-                            colors: chartData[i]['isOvertime'] == true
-                                ? [
-                                    const Color(0xFFFF6B6B).withOpacity(0.8),
-                                    const Color(0xFFFF6B6B),
-                                    const Color(0xFFE63946),
-                                  ]
-                                : [
-                                    AppColors.primary.withOpacity(0.7),
-                                    AppColors.primary,
-                                    AppColors.primary.withOpacity(0.9),
-                                  ],
-                            begin: Alignment.bottomCenter,
-                            end: Alignment.topCenter,
-                          ),
-                          width: 10,
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(5),
-                            topRight: Radius.circular(5),
-                          ),
-                        ),
-                      ],
+                      barRods: _buildSeparateBars(chartData[i]),
                     ),
                 ],
                 maxY: maxY,
@@ -268,19 +259,40 @@ class WorkingHoursChart extends StatelessWidget {
                   enabled: true,
                   touchTooltipData: BarTouchTooltipData(
                     getTooltipColor: (group) => const Color(0xFF1F2937),
-                    
                     tooltipPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     getTooltipItem: (group, groupIndex, rod, rodIndex) {
                       if (groupIndex < chartData.length) {
                         final data = chartData[groupIndex];
                         final date = data['date'] as DateTime;
-                        final hours = data['formattedHours'] as String;
-                        final isOvertime = data['isOvertime'] as bool;
+                        final workingHours = data['hours'] as double;
+                        final breakHours = data['breakHours'] as double? ?? 0.0;
+                        final regularHours = workingHours <= standardWorkingHours ? workingHours : standardWorkingHours;
+                        final overtimeHours = workingHours > standardWorkingHours ? (workingHours - standardWorkingHours) : 0.0;
+                        
+                        String barType = '';
+                        double barValue = 0;
+                        
+                        switch (rodIndex) {
+                          case 0:
+                            barType = 'Regular Hours';
+                            barValue = regularHours;
+                            break;
+                          case 1:
+                            barType = 'Overtime';
+                            barValue = overtimeHours;
+                            break;
+                          case 2:
+                            barType = 'Break Time';
+                            barValue = breakHours;
+                            break;
+                        }
+                        
                         return BarTooltipItem(
-                          '${DateFormat('dd MMM yyyy').format(date)}\n$hours${isOvertime ? ' (Overtime)' : ''}',
+                          '${DateFormat('dd MMM yyyy').format(date)}\n'
+                          '$barType: ${_formatHours(barValue)}',
                           const TextStyle(
                             color: Colors.white,
-                            fontSize: 13,
+                            fontSize: 12,
                             fontWeight: FontWeight.w600,
                             height: 1.4,
                           ),
@@ -297,27 +309,29 @@ class WorkingHoursChart extends StatelessWidget {
           
           // Legend Section
           Container(
-            padding: const EdgeInsets.all(5),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: const Color(0xFFF9FAFB),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: const Color(0xFFE5E7EB),
                 width: 1,
-
               ),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 _buildLegendItem(
                   color: AppColors.primary,
-                  label: 'Regular Hours',
+                  label: 'Regular \nHours',
                 ),
-                const SizedBox(width: 12),
                 _buildLegendItem(
                   color: const Color(0xFFFF6B6B),
-                  label: 'Overtime Hours',
+                  label: 'Overtime \nHours',
+                ),
+                _buildLegendItem(
+                  color: const Color(0xFFFFB800),
+                  label: 'Break \nTime',
                 ),
               ],
             ),
@@ -325,6 +339,64 @@ class WorkingHoursChart extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  List<BarChartRodData> _buildSeparateBars(Map<String, dynamic> data) {
+    final workingHours = data['hours'] as double;
+    final breakHours = data['breakHours'] as double? ?? 0.0;
+    
+    final regularHours = workingHours <= standardWorkingHours ? workingHours : standardWorkingHours;
+    final overtimeHours = workingHours > standardWorkingHours ? (workingHours - standardWorkingHours) : 0.0;
+    
+    const barWidth = 8.0;
+
+    
+    return [
+      // Regular hours bar
+      BarChartRodData(
+        toY: regularHours,
+        color: AppColors.primary,
+        width: barWidth,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(4),
+          topRight: Radius.circular(4),
+        ),
+      ),
+      // Overtime bar
+      BarChartRodData(
+        toY: overtimeHours,
+        color: const Color(0xFFFF6B6B),
+        width: barWidth,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(4),
+          topRight: Radius.circular(4),
+        ),
+      ),
+      // Break time bar
+      BarChartRodData(
+        toY: breakHours,
+        color: const Color(0xFFFFB800),
+        width: barWidth,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(4),
+          topRight: Radius.circular(4),
+        ),
+      ),
+    ];
+  }
+
+  String _formatHours(double hours) {
+    final totalMinutes = (hours * 60).round();
+    final h = totalMinutes ~/ 60;
+    final m = totalMinutes % 60;
+    
+    if (h == 0) {
+      return '${m}m';
+    } else if (m == 0) {
+      return '${h}h';
+    } else {
+      return '${h}h ${m}m';
+    }
   }
 
   Widget _buildLegendItem({required Color color, required String label}) {
@@ -346,12 +418,12 @@ class WorkingHoursChart extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
         Text(
           label,
           style: const TextStyle(
             color: Color(0xFF374151),
-            fontSize: 13,
+            fontSize: 12,
             fontWeight: FontWeight.w600,
           ),
         ),

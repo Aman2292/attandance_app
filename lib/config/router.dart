@@ -2,6 +2,7 @@ import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../features/admin/report_screen.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/signup_screen.dart';
 import '../features/dashboard/dashboard_screen.dart';
@@ -150,6 +151,10 @@ final routerConfig = GoRouter(
         GoRoute(
           path: 'attendance-overview',
           builder: (context, state) => const AttendanceOverviewScreen(),
+        ),
+        GoRoute(
+          path: 'report-overview',
+          builder: (context, state) => const ReportOverviewScreen(),
         ),
       ],
     ),

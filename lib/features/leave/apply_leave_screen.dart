@@ -9,6 +9,7 @@ import '../../providers/holiday_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../services/leave_service.dart';
 
+
 class ApplyLeaveScreen extends ConsumerStatefulWidget {
   const ApplyLeaveScreen({super.key});
 
@@ -86,10 +87,56 @@ class _ApplyLeaveScreenState extends ConsumerState<ApplyLeaveScreen> {
       setState(() => _isSubmitting = false);
       return;
     }
+
+    // Check leave balance
+    final userAsync = ref.read(userProvider);
+    final user = userAsync.whenData((user) => user).valueOrNull;
+    if (user == null) {
+      debugPrint('User data not found for userId=$userId');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error: User data not found')),
+      );
+      setState(() => _isSubmitting = false);
+      return;
+    }
+    final leaveBalance = user.leaveBalance;
+    final leaveType = _leaveType!.toLowerCase(); // Ensure lowercase for consistency
+    final days = _endDate!.difference(_startDate!).inDays + 1; // Include end date
+    debugPrint('Checking leave balance: type=$leaveType, days=$days, balance=$leaveBalance');
+
+    bool hasSufficientBalance;
+    String errorMessage = '';
+    switch (leaveType) {
+      case 'paid':
+        hasSufficientBalance = leaveBalance.paidLeave >= days;
+        errorMessage = 'Insufficient paid leave balance';
+        break;
+      case 'sick':
+        hasSufficientBalance = leaveBalance.sickLeave >= days;
+        errorMessage = 'Insufficient sick leave balance';
+        break;
+      case 'earned':
+        hasSufficientBalance = leaveBalance.earnedLeave >= days;
+        errorMessage = 'Insufficient earned leave balance';
+        break;
+      default:
+        hasSufficientBalance = false;
+        errorMessage = 'Invalid leave type';
+    }
+
+    if (!hasSufficientBalance) {
+      debugPrint('Leave application failed: $errorMessage, balance=$leaveBalance');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage)),
+      );
+      setState(() => _isSubmitting = false);
+      return;
+    }
+
     try {
       await ref.read(leaveServiceProvider).applyLeave(
             userId: userId,
-            type: _leaveType!,
+            type: leaveType,
             startDate: _startDate!,
             endDate: _endDate!,
             reason: _reasonController.text.trim(),
@@ -99,7 +146,7 @@ class _ApplyLeaveScreenState extends ConsumerState<ApplyLeaveScreen> {
       );
       context.pop();
     } catch (e) {
-      debugPrint('Leave application failed: $e');
+      debugPrint('Leave application failed: userId=$userId, type=$leaveType, error=$e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')),
       );
@@ -121,6 +168,7 @@ class _ApplyLeaveScreenState extends ConsumerState<ApplyLeaveScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            
             DropdownButtonFormField<String>(
               decoration: AppInputDecorations.textFieldDecoration(labelText: 'Leave Type'),
               value: _leaveType,

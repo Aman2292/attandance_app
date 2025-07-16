@@ -165,113 +165,136 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
     }
   }
 
-  Future<Map<String, dynamic>> _fetchAttendanceData(String userId) async {
-    if (userId.isEmpty) {
-      return {
-        'chartData': [],
-        'totalHours': 0.0,
-        'averageHours': 0.0,
-        'workingDays': 0,
-        'overtimeHours': 0.0,
-      };
-    }
+ Future<Map<String, dynamic>> _fetchAttendanceData(String userId) async {
+  if (userId.isEmpty) {
+    return {
+      'chartData': [],
+      'totalHours': 0.0,
+      'averageHours': 0.0,
+      'workingDays': 0,
+      'overtimeHours': 0.0,
+    };
+  }
 
-    try {
-      final querySnapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .collection('attendance')
-          .get();
+  try {
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('attendance')
+        .get();
 
-      print('Total documents found: ${querySnapshot.docs.length}');
+    print('Total documents found: ${querySnapshot.docs.length}');
 
-      final attendanceRecords = <Map<String, dynamic>>[];
+    final attendanceRecords = <Map<String, dynamic>>[];
 
-      for (var doc in querySnapshot.docs) {
-        final data = doc.data();
-        print('Processing document: ${doc.id}');
-        print('Document data: $data');
-        
-        final dateStr = data['date'] as String?;
-        if (dateStr == null) {
-          print('No date field found in document ${doc.id}');
-          continue;
-        }
-        
-        DateTime recordDate;
-        try {
-          recordDate = DateTime.parse(dateStr);
-        } catch (e) {
-          print('Error parsing date $dateStr: $e');
-          continue;
-        }
-
-        if (recordDate.isBefore(_startDate) || recordDate.isAfter(_endDate.add(const Duration(days: 1)))) {
-          continue;
-        }
-
-        final checkInTime = (data['checkInTime'] as Timestamp?)?.toDate();
-        final checkOutTime = (data['checkOutTime'] as Timestamp?)?.toDate();
-        final totalBreakDuration = (data['totalBreakDuration'] ?? 0) as num;
-
-        if (checkInTime == null) {
-          print('No check-in time found for document ${doc.id}');
-          continue;
-        }
-
-        DateTime endTime = checkOutTime ?? DateTime.now();
-        int totalMinutes = endTime.difference(checkInTime).inMinutes;
-        int breakMinutes = totalBreakDuration.toInt();
-        int workedMinutes = totalMinutes - breakMinutes;
-
-        if (workedMinutes < 0) workedMinutes = 0;
-
-        final hours = workedMinutes / 60.0;
-        final isOvertime = hours > _standardWorkingHours;
-        
-        attendanceRecords.add({
-          'date': recordDate,
-          'hours': hours,
-          'formattedHours': _formatDuration(Duration(minutes: workedMinutes)),
-          'isOvertime': isOvertime,
-        });
+    for (var doc in querySnapshot.docs) {
+      final data = doc.data();
+      print('Processing document: ${doc.id}');
+      print('Document data: $data');
+      
+      final dateStr = data['date'] as String?;
+      if (dateStr == null) {
+        print('No date field found in document ${doc.id}');
+        continue;
+      }
+      
+      DateTime recordDate;
+      try {
+        recordDate = DateTime.parse(dateStr);
+      } catch (e) {
+        print('Error parsing date $dateStr: $e');
+        continue;
       }
 
-      print('Filtered attendance records: ${attendanceRecords.length}');
+      if (recordDate.isBefore(_startDate) || recordDate.isAfter(_endDate.add(const Duration(days: 1)))) {
+        continue;
+      }
 
-      attendanceRecords.sort((a, b) => (a['date'] as DateTime).compareTo(b['date'] as DateTime));
+      final checkInTime = (data['checkInTime'] as Timestamp?)?.toDate();
+      final checkOutTime = (data['checkOutTime'] as Timestamp?)?.toDate();
+      final totalBreakDuration = (data['totalBreakDuration'] ?? 0) as num;
 
-      final totalWorkedMinutes = attendanceRecords.fold(0.0, (sum, record) => sum + (record['hours'] as double) * 60);
-      final workingDays = attendanceRecords.length;
-      final averageHours = workingDays > 0 ? totalWorkedMinutes / 60.0 / workingDays : 0.0;
-      final totalHours = totalWorkedMinutes / 60.0;
-      final expectedHours = _standardWorkingHours * workingDays;
-      final overtimeHours = totalHours > expectedHours ? (totalHours - expectedHours) : 0.0;
+      if (checkInTime == null) {
+        print('No check-in time found for document ${doc.id}');
+        continue;
+      }
 
-      return {
-        'chartData': attendanceRecords,
-        'totalHours': totalHours,
-        'averageHours': averageHours,
-        'workingDays': workingDays,
+      DateTime endTime = checkOutTime ?? DateTime.now();
+      int totalMinutes = endTime.difference(checkInTime).inMinutes;
+      int breakMinutes = totalBreakDuration.toInt();
+      int workedMinutes = totalMinutes - breakMinutes;
+
+      if (workedMinutes < 0) workedMinutes = 0;
+
+      final workingHours = workedMinutes / 60.0;
+      final breakHours = breakMinutes / 60.0;
+      final isOvertime = workingHours > _standardWorkingHours;
+      
+      // Calculate regular and overtime hours
+      final regularHours = workingHours <= _standardWorkingHours ? workingHours : _standardWorkingHours;
+      final overtimeHours = workingHours > _standardWorkingHours ? (workingHours - _standardWorkingHours) : 0.0;
+      
+      attendanceRecords.add({
+        'date': recordDate,
+        'hours': workingHours,
+        'breakHours': breakHours,
+        'regularHours': regularHours,
         'overtimeHours': overtimeHours,
-      };
-    } catch (e) {
-      print('Error fetching attendance data: $e');
-      rethrow;
+        'formattedHours': _formatDuration(Duration(minutes: workedMinutes)),
+        'formattedBreakHours': _formatDuration(Duration(minutes: breakMinutes)),
+        'isOvertime': isOvertime,
+        'totalMinutes': totalMinutes,
+        'workedMinutes': workedMinutes,
+        'breakMinutes': breakMinutes,
+      });
     }
-  }
 
-  String _formatDuration(Duration duration) {
-    final hours = duration.inHours;
-    final minutes = duration.inMinutes % 60;
+    print('Filtered attendance records: ${attendanceRecords.length}');
+
+    attendanceRecords.sort((a, b) => (a['date'] as DateTime).compareTo(b['date'] as DateTime));
+
+    final totalWorkedMinutes = attendanceRecords.fold(0.0, (sum, record) => sum + (record['hours'] as double) * 60);
+    final totalBreakMinutes = attendanceRecords.fold(0.0, (sum, record) => sum + (record['breakHours'] as double) * 60);
+    final workingDays = attendanceRecords.length;
+    final averageHours = workingDays > 0 ? totalWorkedMinutes / 60.0 / workingDays : 0.0;
+    final totalHours = totalWorkedMinutes / 60.0;
+    final totalBreakHours = totalBreakMinutes / 60.0;
+    final expectedHours = _standardWorkingHours * workingDays;
+    final overtimeHours = totalHours > expectedHours ? (totalHours - expectedHours) : 0.0;
+
+    return {
+      'chartData': attendanceRecords,
+      'totalHours': totalHours,
+      'totalBreakHours': totalBreakHours,
+      'averageHours': averageHours,
+      'workingDays': workingDays,
+      'overtimeHours': overtimeHours,
+    };
+  } catch (e) {
+    print('Error fetching attendance data: $e');
+    rethrow;
+  }
+}
+
+String _formatDuration(Duration duration) {
+  final hours = duration.inHours;
+  final minutes = duration.inMinutes % 60;
+  
+  if (hours == 0) {
+    return '${minutes}m';
+  } else if (minutes == 0) {
+    return '${hours}h';
+  } else {
     return '${hours}h ${minutes}m';
   }
+}
 
   Widget _buildEmptyState() {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          
           Container(
             padding: const EdgeInsets.all(30),
             decoration: BoxDecoration(
