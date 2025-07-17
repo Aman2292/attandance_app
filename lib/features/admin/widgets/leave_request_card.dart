@@ -8,6 +8,7 @@ import '../../../models/user_model.dart';
 import '../../../providers/leave_provider.dart';
 import '../../../providers/user_provider.dart';
 
+
 class LeaveRequestCard extends ConsumerWidget {
   final LeaveRecord leave;
   final String userName;
@@ -25,6 +26,9 @@ class LeaveRequestCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ValueNotifier<bool> isProcessing = ValueNotifier(false);
+
+    // Get adminId from authServiceProvider
+    final adminId = ref.read(authServiceProvider).currentUser?.uid;
 
     return FutureBuilder<UserModel?>(
       future: _fetchUser(leave.userId),
@@ -206,7 +210,7 @@ class LeaveRequestCard extends ConsumerWidget {
                 else if (snapshot.connectionState == ConnectionState.waiting)
                   const Center(child: CircularProgressIndicator())
                 else
-                   Text(
+                  Text(
                     'Unable to load requestor\'s balance',
                     style: AppTextStyles.bodySmall,
                   ),
@@ -219,7 +223,7 @@ class LeaveRequestCard extends ConsumerWidget {
                         children: [
                           Expanded(
                             child: ElevatedButton.icon(
-                              onPressed: processing
+                              onPressed: processing || adminId == null
                                   ? null
                                   : () async {
                                       isProcessing.value = true;
@@ -231,6 +235,7 @@ class LeaveRequestCard extends ConsumerWidget {
                                                 leaveId: leave.id,
                                                 status: 'rejected',
                                                 rejectionReason: rejectionReason,
+                                                adminId: adminId, // Pass adminId
                                               );
                                           ref.invalidate(allLeavesProvider);
                                           onReject?.call();
@@ -266,7 +271,7 @@ class LeaveRequestCard extends ConsumerWidget {
                           const SizedBox(width: 12),
                           Expanded(
                             child: ElevatedButton.icon(
-                              onPressed: processing
+                              onPressed: processing || adminId == null
                                   ? null
                                   : () async {
                                       isProcessing.value = true;
@@ -306,6 +311,7 @@ class LeaveRequestCard extends ConsumerWidget {
                                               userId: leave.userId,
                                               leaveId: leave.id,
                                               status: 'approved',
+                                              adminId: adminId, // Pass adminId
                                             );
                                         ref.invalidate(userProvider); // Refresh user data
                                         ref.invalidate(allLeavesProvider); // Refresh leave records

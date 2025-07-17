@@ -48,11 +48,10 @@ class _LeaveScreenState extends ConsumerState<LeaveScreen> {
     final leaveDates = <DateTime>[];
 
     for (var record in leaveRecords) {
-      // Only include approved and pending leaves
+      // Only include approved and pending leaves for display
       if (record.status == 'approved' || record.status == 'pending') {
         DateTime current = record.startDate;
         while (current.isBefore(record.endDate.add(const Duration(days: 1)))) {
-          // Only add dates for current month
           if (current.year == _currentMonth.value.year &&
               current.month == _currentMonth.value.month) {
             leaveDates.add(DateTime(current.year, current.month, current.day));
@@ -93,12 +92,12 @@ class _LeaveScreenState extends ConsumerState<LeaveScreen> {
         }
       });
       
-      // Listen to leave records changes
       final user = ref.read(authServiceProvider).currentUser;
       if (user != null) {
         ref.listen(leaveRecordsProvider(user.uid), (previous, next) {
           if (next.hasValue) {
-            _updateLeaveDates();
+            _updateLeaveDates(); // Update UI only, no balance sync
+            debugPrint('Leave records updated for user ${user.uid}');
           }
         });
       }
@@ -347,7 +346,6 @@ class _LeaveScreenState extends ConsumerState<LeaveScreen> {
                                     );
                                   }
                                 } else if (isHoliday && isLeaveDate) {
-                                  // Both holiday and leave - show striped or mixed color
                                   bgColor = Colors.orange.shade200;
                                   border = Border.all(color: Colors.purple, width: 2);
                                   textColor = Colors.white;

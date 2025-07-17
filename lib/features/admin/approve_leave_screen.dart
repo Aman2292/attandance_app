@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax/iconsax.dart';
@@ -34,6 +36,18 @@ class _ApproveLeaveScreenState extends ConsumerState<ApproveLeaveScreen> {
   @override
   Widget build(BuildContext context) {
     final leavesAsync = ref.watch(allLeavesProvider);
+    final adminUser = ref.watch(userProvider).valueOrNull;
+
+    if (adminUser?.role != 'admin') {
+      return Scaffold(
+        body: Center(
+          child: Text(
+            'Access Denied: Only admins can view this screen',
+            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.error),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -64,7 +78,7 @@ class _ApproveLeaveScreenState extends ConsumerState<ApproveLeaveScreen> {
             child: RefreshIndicator(
               onRefresh: () async {
                 ref.refresh(allLeavesProvider);
-                ref.refresh(userProvider); // Refresh user data
+                ref.invalidate(userProvider);
               },
               child: leavesAsync.when(
                 data: (leaves) {
@@ -161,7 +175,7 @@ class _ApproveLeaveScreenState extends ConsumerState<ApproveLeaveScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Unable to load leave requests. Please try again.',
+              'Unable to load leave requests: $error',
               style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ),
@@ -274,14 +288,34 @@ class _ApproveLeaveScreenState extends ConsumerState<ApproveLeaveScreen> {
   }
 
   Future<void> _approveLeave(LeaveRecord leave) async {
+    final adminUser = ref.read(userProvider).valueOrNull;
+    if (adminUser?.role != 'admin') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Only admins can approve leaves')),
+      );
+      return;
+    }
+    final adminId = ref.read(authServiceProvider).currentUser?.uid;
+    if (adminId == null) {
+      debugPrint('Admin not authenticated');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Admin not authenticated')),
+      );
+      return;
+    }
     try {
+      debugPrint('Approving leave: userId=${leave.userId}, leaveId=${leave.id}, adminId=$adminId');
       await ref.read(leaveServiceProvider).updateLeaveStatus(
             userId: leave.userId,
             leaveId: leave.id,
             status: 'approved',
-          );
-      ref.invalidate(userProvider); // Refresh user data for DashboardScreen
-      ref.refresh(allLeavesProvider); // Refresh leave list
+            adminId: adminId,
+          ).timeout(const Duration(seconds: 10), onTimeout: () {
+        throw TimeoutException('Leave approval timed out');
+      });
+      ref.invalidate(userProvider);
+      ref.refresh(allLeavesProvider);
+      debugPrint('Providers refreshed after approval');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -296,7 +330,9 @@ class _ApproveLeaveScreenState extends ConsumerState<ApproveLeaveScreen> {
           ),
         );
       }
+      debugPrint('Leave approved successfully');
     } catch (e) {
+      debugPrint('Approval error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -311,19 +347,38 @@ class _ApproveLeaveScreenState extends ConsumerState<ApproveLeaveScreen> {
           ),
         );
       }
-      print('Approval error: $e'); // Log error for debugging
     }
   }
 
   Future<void> _rejectLeave(LeaveRecord leave, String reason) async {
+    final adminUser = ref.read(userProvider).valueOrNull;
+    if (adminUser?.role != 'admin') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Only admins can reject leaves')),
+      );
+      return;
+    }
+    final adminId = ref.read(authServiceProvider).currentUser?.uid;
+    if (adminId == null) {
+      debugPrint('Admin not authenticated');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Admin not authenticated')),
+      );
+      return;
+    }
     try {
+      debugPrint('Rejecting leave: userId=${leave.userId}, leaveId=${leave.id}, adminId=$adminId');
       await ref.read(leaveServiceProvider).updateLeaveStatus(
             userId: leave.userId,
             leaveId: leave.id,
             status: 'rejected',
             rejectionReason: reason.isNotEmpty ? reason : null,
-          );
-      ref.refresh(allLeavesProvider); // Refresh leave list
+            adminId: adminId,
+          ).timeout(const Duration(seconds: 10), onTimeout: () {
+        throw TimeoutException('Leave rejection timed out');
+      });
+      ref.refresh(allLeavesProvider);
+      debugPrint('Providers refreshed after rejection');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -338,7 +393,9 @@ class _ApproveLeaveScreenState extends ConsumerState<ApproveLeaveScreen> {
           ),
         );
       }
+      debugPrint('Leave rejected successfully');
     } catch (e) {
+      debugPrint('Rejection error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -353,7 +410,6 @@ class _ApproveLeaveScreenState extends ConsumerState<ApproveLeaveScreen> {
           ),
         );
       }
-      print('Rejection error: $e'); // Log error for debugging
     }
   }
 

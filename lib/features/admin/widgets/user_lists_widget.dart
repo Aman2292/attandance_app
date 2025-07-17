@@ -5,7 +5,7 @@ import '../../../models/user_model.dart';
 
 import 'package:iconsax/iconsax.dart';
 
-import '../report_utils.dart';
+import '../utils/report_utils.dart';
 
 class UserWithId {
   final UserModel user;

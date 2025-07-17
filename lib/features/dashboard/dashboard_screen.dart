@@ -1,4 +1,3 @@
-
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,7 +9,6 @@ import '../../core/constants.dart';
 import '../../models/user_model.dart';
 import '../../providers/user_provider.dart';
 import '../../providers/attendance_provider.dart';
-
 import '../../services/leave_service.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -45,18 +43,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final userId = ref.read(authServiceProvider).currentUser?.uid;
     if (userId != null) {
       await prefs.setString('userId', userId);
-      // Sync leave balance on initialization
-      await ref.read(leaveServiceProvider).syncLeaveBalance(userId);
+      // Removed syncLeaveBalance call from initialization
     }
   }
-
 
   void _startCheckInTimer(DateTime? checkInTime) {
     if (checkInTime != null) {
       _checkInTimer?.cancel();
       _checkInTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-        setState(() {
-        });
+        setState(() {});
       });
     }
   }
@@ -111,7 +106,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               onRefresh: () async {
                 ref.invalidate(userProvider);
                 ref.invalidate(attendanceProvider(userId));
-                await ref.read(leaveServiceProvider).syncLeaveBalance(userId);
+                // Removed syncLeaveBalance call from onRefresh
               },
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),

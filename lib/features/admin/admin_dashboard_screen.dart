@@ -2,14 +2,18 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:iconsax/iconsax.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:iconsax/iconsax.dart';
 import '../../core/constants.dart';
 import '../../core/widgets/confirmation_dialog.dart';
-import '../../providers/user_provider.dart';
-import '../../models/user_model.dart';
 import '../../models/leave_record.dart';
+import '../../models/user_model.dart';
+import '../../providers/user_provider.dart';
 import '../../services/auth_service.dart';
+
+import 'utils/dashboard_utils.dart';
+import 'widgets/pending_leaves_section_widget.dart';
+import 'widgets/statistics_section_widget.dart';
 
 final allUsersProvider = StreamProvider<List<UserModel>>((ref) {
   return FirebaseFirestore.instance
@@ -39,13 +43,37 @@ class AdminDashboardScreen extends ConsumerStatefulWidget {
   ConsumerState<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
 }
 
-class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
+class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> with TickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+
   @override
   void initState() {
     super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic));
+    
+    _animationController.forward();
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkAdminAccess();
     });
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   Future<void> _checkAdminAccess() async {
@@ -64,6 +92,8 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           SnackBar(
             content: Text('Access denied: Admin only', style: AppTextStyles.bodyMedium.copyWith(color: Colors.white)),
             backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         );
         context.go('/employee/dashboard');
@@ -78,217 +108,240 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        title: Text('Admin Dashboard', style: AppTextStyles.heading2.copyWith(color: Colors.white)),
-        actions: [
-          IconButton(
-            icon: const Icon(Iconsax.user_edit, color: Colors.white),
-            onPressed: () => context.go('/admin/manage-users'),
-            tooltip: 'Manage Users',
-          ),
-          IconButton(
-            icon: const Icon(Iconsax.logout, color: Colors.white),
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (context) => ConfirmationDialog(
-                  title: 'Logout',
-                  content: 'Are you sure you want to logout?',
-                  onConfirm: () async {
-                    try {
-                      final prefs = await SharedPreferences.getInstance();
-                      await prefs.clear(); 
-                      await AuthService().signOut(); 
-                      if (context.mounted) {
-                        context.go('/login');
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Error logging out: $e'),
-                            backgroundColor: AppColors.error,
-                          ),
-                        );
-                      }
-                    }
-                  },
+      body: CustomScrollView(
+        slivers: [
+          // Enhanced App Bar
+          SliverAppBar(
+            expandedHeight: 120,
+            floating: false,
+            pinned: true,
+            elevation: 0,
+            backgroundColor: AppColors.surface,
+            foregroundColor: Colors.white,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColors.surface,
+                      AppColors.surface.withOpacity(0.8),
+                      AppColors.primary.withOpacity(0.2),
+                    ],
+                  ),
                 ),
-              );
-            },
-            tooltip: 'Logout',
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        FadeTransition(
+                          opacity: _fadeAnimation,
+                          child: SlideTransition(
+                            position: _slideAnimation,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Admin Dashboard',
+                                  style: AppTextStyles.heading1.copyWith(
+                                    color: Colors.white,
+                                    fontSize: 28,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Manage your workforce efficiently',
+                                  style: AppTextStyles.bodyMedium.copyWith(
+                                    color: Colors.white.withOpacity(0.8),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            actions: [
+              Container(
+                margin: const EdgeInsets.only(right: 8),
+                child: IconButton(
+                  icon: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Iconsax.user_edit, color: Colors.white, size: 20),
+                  ),
+                  onPressed: () => context.go('/admin/manage-users'),
+                  tooltip: 'Manage Users',
+                ),
+              ),
+              Container(
+                margin: const EdgeInsets.only(right: 16),
+                child: IconButton(
+                  icon: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Iconsax.logout, color: Colors.white, size: 20),
+                  ),
+                  onPressed: () => _showLogoutDialog(),
+                  tooltip: 'Logout',
+                ),
+              ),
+            ],
+          ),
+          // Dashboard Content
+          SliverToBoxAdapter(
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: SlideTransition(
+                position: _slideAnimation,
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Welcome Section
+                      _buildWelcomeSection(),
+                      const SizedBox(height: 30),
+                      // Statistics Section
+                      StatisticsSectionWidget(
+                        usersAsync: usersAsync,
+                        pendingLeavesAsync: pendingLeavesAsync,
+                      ),
+                      const SizedBox(height: 10),
+                      // Quick Actions
+                      _buildQuickActionsSection(),
+                      const SizedBox(height: 10),
+                      // Pending Leaves Section
+                      PendingLeavesSectionWidget(
+                        pendingLeavesAsync: pendingLeavesAsync,
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.refresh(allUsersProvider);
-          ref.refresh(pendingLeavesProvider);
+    );
+  }
+
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => ConfirmationDialog(
+        title: 'Logout',
+        content: 'Are you sure you want to logout?',
+        onConfirm: () async {
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.clear();
+            await AuthService().signOut();
+            if (context.mounted) {
+              context.go('/login');
+            }
+          } catch (e) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Error logging out: $e'),
+                  backgroundColor: AppColors.error,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              );
+            }
+          }
         },
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Welcome Section
-              _buildWelcomeSection(),
-              const SizedBox(height: 24),
-              
-              // Statistics Cards
-              _buildStatisticsSection(usersAsync, pendingLeavesAsync),
-              const SizedBox(height: 24),
-              
-              // Quick Actions
-              _buildQuickActionsSection(),
-              const SizedBox(height: 24),
-              
-              // Pending Leaves Section
-              _buildPendingLeavesSection(pendingLeavesAsync),
-            ],
-          ),
-        ),
       ),
     );
   }
 
   Widget _buildWelcomeSection() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.primary.withOpacity(0.1), AppColors.accent.withOpacity(0.05)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
+          colors: [
+            AppColors.primary.withOpacity(0.1),
+            AppColors.accent.withOpacity(0.08),
+          ],
         ),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.primary.withOpacity(0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withOpacity(0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
+              gradient: LinearGradient(
+                colors: [AppColors.primary, AppColors.primary.withOpacity(0.8)],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withOpacity(0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-            child: Icon(
+            child: const Icon(
               Iconsax.crown,
-              color: AppColors.primary,
-              size: 24,
+              color: Colors.white,
+              size: 28,
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 20),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Welcome back, Admin!',
-                  style: AppTextStyles.heading3,
+                  'Welcome, Admin!',
+                  style: AppTextStyles.heading3.copyWith(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 8),
                 Text(
-                  'Manage your team and oversee operations',
-                  style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                  'Monitor team performance and oversee daily operations with comprehensive insights.',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.textSecondary,
+                    height: 1.4,
+                  ),
                 ),
               ],
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildStatisticsSection(AsyncValue<List<UserModel>> usersAsync, AsyncValue<List<Map<String, dynamic>>> pendingLeavesAsync) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Overview', style: AppTextStyles.heading3),
-        const SizedBox(height: 12),
-        usersAsync.when(
-          data: (users) {
-            final employees = users.where((u) => u.role == 'employee').length;
-            final admins = users.where((u) => u.role == 'admin').length;
-            final totalUsers = users.length;
-            final pendingLeaves = pendingLeavesAsync.value?.length ?? 0;
-
-            return GridView.count(
-              crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              childAspectRatio: 1.2,
-              children: [
-                _buildStatCard(
-                  'Total Users',
-                  '$totalUsers',
-                  Iconsax.people,
-                  AppColors.info,
-                ),
-                _buildStatCard(
-                  'Employees',
-                  '$employees',
-                  Iconsax.user,
-                  AppColors.success,
-                ),
-                _buildStatCard(
-                  'Admins',
-                  '$admins',
-                  Iconsax.crown,
-                  AppColors.warning,
-                ),
-                _buildStatCard(
-                  'Pending Leaves',
-                  '$pendingLeaves',
-                  Iconsax.clock,
-                  AppColors.pending,
-                ),
-              ],
-            );
-          },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, stackTrace) => _buildErrorCard('Failed to load statistics', () => ref.refresh(allUsersProvider)),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              height: 35,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: color, size: 24),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              value,
-              style: AppTextStyles.heading2.copyWith(color: color),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              title,
-              style: AppTextStyles.bodySmall,
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -297,237 +350,59 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Quick Actions', style: AppTextStyles.heading3),
-        const SizedBox(height: 16),
         Row(
-          children: [
-            Expanded(
-              child: _buildActionButton(
-                'Manage Users',
-                Iconsax.user_edit,
-                AppColors.primary,
-                () => context.go('/admin/manage-users'),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildActionButton(
-                'Attendance',
-                Iconsax.calendar,
-                AppColors.success,
-                () => context.go('/admin/attendance-overview'),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _buildActionButton(
-                'Leave Requests',
-                Iconsax.clipboard_text,
-                AppColors.warning,
-                () => context.go('/admin/approve-leave'),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildActionButton(
-                'Reports',
-                Iconsax.chart,
-                AppColors.info,
-                () => context.go('/admin/report-overview'),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildActionButton(String title, IconData icon, Color color, VoidCallback onPressed) {
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        elevation: 2,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 24),
-          const SizedBox(height: 8),
-          Text(title, style: AppTextStyles.bodyMedium.copyWith(color: Colors.white)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPendingLeavesSection(AsyncValue<List<Map<String, dynamic>>> pendingLeavesAsync) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('Recent Leave Requests', style: AppTextStyles.heading3),
-            TextButton.icon(
-              onPressed: () => context.go('/admin/approve-leave'),
-              icon: const Icon(Iconsax.arrow_right_3, size: 16),
-              label: Text('View All', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.primary)),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Card(
-          elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: pendingLeavesAsync.when(
-              data: (leaves) {
-                if (leaves.isEmpty) {
-                  return _buildEmptyState(
-                    'No pending leave requests',
-                    'All caught up! No pending leave requests at the moment.',
-                    Iconsax.tick_circle,
-                    AppColors.success,
-                  );
-                }
-                
-                return ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: leaves.length > 5 ? 5 : leaves.length, // Show max 5 items
-                  separatorBuilder: (context, index) => const Divider(height: 1),
-                  itemBuilder: (context, index) {
-                    final leaveData = leaves[index];
-                    final leave = leaveData['leave'] as LeaveRecord;
-                    return _buildLeaveRequestTile(leave);
-                  },
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, stackTrace) => _buildErrorCard('Failed to load leave requests', () => ref.refresh(pendingLeavesProvider)),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildLeaveRequestTile(LeaveRecord leave) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(vertical: 8),
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: AppColors.pending.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(
-          Iconsax.calendar_2,
-          color: AppColors.pending,
-          size: 20,
-        ),
-      ),
-      title: Text(
-        '${leave.type.toUpperCase()} Leave',
-        style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600),
-      ),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 4),
-          Text(
-            'From: ${leave.startDate.toString().substring(0, 10)}',
-            style: AppTextStyles.bodySmall,
-          ),
-          Text(
-            'Employee ID: ${leave.userId}',
-            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
-          ),
-        ],
-      ),
-      trailing: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: AppColors.pending.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Text(
-          'Pending',
-          style: AppTextStyles.bodySmall.copyWith(color: AppColors.pending),
-        ),
-      ),
-      onTap: () => context.go('/admin/approve-leave'),
-    );
-  }
-
-  Widget _buildEmptyState(String title, String message, IconData icon, Color color) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(50),
-              ),
-              child: Icon(icon, color: color, size: 48),
-            ),
-            const SizedBox(height: 16),
-            Text(title, style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
-            Text(
-              message,
-              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  
-  
-
-  Widget _buildErrorCard(String message, VoidCallback onRetry) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
           children: [
             Icon(
-              Iconsax.warning_2,
-              color: AppColors.error,
-              size: 48,
+              Iconsax.flash_1,
+              color: AppColors.surface,
+              size: 30,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(width: 12),
             Text(
-              message,
-              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.error),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Iconsax.refresh),
-              label: const Text('Retry'),
-              style: AppButtonStyles.primaryButton,
+              'Quick Actions',
+              style: AppTextStyles.heading2.copyWith(fontSize: 20),
             ),
           ],
         ),
-      ),
+        GridView.count(
+          crossAxisCount: 2,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          childAspectRatio: 0.85,
+          children: [
+            DashboardUtils.buildActionCard(
+              'Manage Users',
+              'Add, edit, or remove team members',
+              Iconsax.user_edit,
+              AppColors.primary,
+              () => context.go('/admin/manage-users'),
+            ),
+            DashboardUtils.buildActionCard(
+              'Attendance',
+              'Monitor team attendance patterns',
+              Iconsax.calendar,
+              AppColors.success,
+              () => context.go('/admin/attendance-overview'),
+            ),
+            DashboardUtils.buildActionCard(
+              'Leave Requests',
+              'Review and approve leave applications',
+              Iconsax.clipboard_text,
+              AppColors.warning,
+              () => context.go('/admin/approve-leave'),
+            ),
+            DashboardUtils.buildActionCard(
+              'Reports',
+              'Generate comprehensive analytics',
+              Iconsax.chart,
+              AppColors.info,
+              () => context.go('/admin/report-overview'),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

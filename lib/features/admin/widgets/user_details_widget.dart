@@ -6,7 +6,7 @@ import '../../../core/constants.dart';
 import '../../../models/leave_record.dart';
 import '../../../models/attendance_record.dart' as models;
 import '../../../models/user_model.dart';
-import '../report_utils.dart';
+import '../utils/report_utils.dart';
 import 'user_lists_widget.dart';
 
 
