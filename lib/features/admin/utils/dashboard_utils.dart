@@ -9,11 +9,10 @@ class DashboardUtils {
     String value,
     IconData icon,
     Color color,
-    String subtitle,{
-    double height = 400,}
+  
   ) {
     return Container(
-      height: height,
+     
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -26,12 +25,12 @@ class DashboardUtils {
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.all(2),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [color, color.withOpacity(0.8)],
@@ -47,32 +46,26 @@ class DashboardUtils {
               ),
               child: Icon(icon, color: Colors.white, size: 24),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
             Text(
               value,
               style: AppTextStyles.heading1.copyWith(
                 color: color,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                fontWeight: FontWeight.w200,
               ),
             ),
             const SizedBox(height: 2),
             Text(
               title,
-              style: AppTextStyles.bodyMedium.copyWith(
-                fontWeight: FontWeight.w600,
+              style: AppTextStyles.bodySmall.copyWith(
+                fontWeight: FontWeight.w500,
                 color: AppColors.textPrimary,
               ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 2),
-            Text(
-              subtitle,
-              style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textSecondary,
-              ),
-              textAlign: TextAlign.center,
-            ),
+          
           ],
         ),
       ),

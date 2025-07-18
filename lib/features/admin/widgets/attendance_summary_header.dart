@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart';
-
-import '../../../models/attendance_record.dart';
 import '../../../core/constants.dart';
-
+import '../../../models/attendance_record.dart';
 
 class AttendanceSummaryHeader extends StatelessWidget {
   final List<Map<String, dynamic>> records;
@@ -17,8 +15,8 @@ class AttendanceSummaryHeader extends StatelessWidget {
     final todayRecords = records.where((record) {
       final attendance = record['attendance'] as AttendanceRecord;
       return attendance.date.year == today.year &&
-             attendance.date.month == today.month &&
-             attendance.date.day == today.day;
+          attendance.date.month == today.month &&
+          attendance.date.day == today.day;
     }).toList();
 
     final presentCount = todayRecords.where((record) {
@@ -43,16 +41,20 @@ class AttendanceSummaryHeader extends StatelessWidget {
     }).length;
 
     return Container(
-      margin: const EdgeInsets.all(16.0),
-      padding: const EdgeInsets.all(20.0),
+      margin: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        gradient: LinearGradient(
+          colors: [Colors.white, Colors.grey.shade50],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -61,22 +63,34 @@ class AttendanceSummaryHeader extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Iconsax.calendar, color: AppColors.primary, size: 24),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppColors.primary.withOpacity(0.5), AppColors.primary.withOpacity(0.5)],
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Iconsax.calendar, color: AppColors.surface, size: 16),
+              ),
               const SizedBox(width: 8),
               Text(
                 'Today\'s Attendance',
-                style: AppTextStyles.heading3,
+                style: AppTextStyles.bodyMedium.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.surface,
+                ),
               ),
               const Spacer(),
               Text(
-                DateFormat('dd/MM/yy').format(today),
+                DateFormat('dd-MMM-yyyy').format(today),
                 style: AppTextStyles.bodySmall.copyWith(
                   color: AppColors.textSecondary,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
@@ -127,17 +141,19 @@ class AttendanceSummaryHeader extends StatelessWidget {
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
+            gradient: LinearGradient(
+              colors: [color.withOpacity(0.3), color.withOpacity(0.3)],
+            ),
+            borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(icon, color: color, size: 24),
         ),
         const SizedBox(height: 8),
         Text(
           count.toString(),
-          style: AppTextStyles.heading2.copyWith(color: color),
+          style: AppTextStyles.heading3.copyWith(color: color),
         ),
         Text(
           label,

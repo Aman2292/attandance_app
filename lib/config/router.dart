@@ -78,7 +78,7 @@ final routerConfig = GoRouter(
           routes: [
             GoRoute(
               path: '/employee',
-              builder: (context, state) => const DashboardScreen(),
+              builder: (context, state) => const UserDashboardScreen(),
             ),
           ],
         ),

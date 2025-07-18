@@ -10,7 +10,6 @@ import '../../models/leave_record.dart';
 import '../../models/user_model.dart';
 import '../../providers/user_provider.dart';
 import '../../services/auth_service.dart';
-
 import 'utils/dashboard_utils.dart';
 import 'widgets/pending_leaves_section_widget.dart';
 import 'widgets/statistics_section_widget.dart';
@@ -62,9 +61,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
       begin: const Offset(0, 0.3),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic));
-    
+
     _animationController.forward();
-    
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkAdminAccess();
     });
@@ -110,7 +109,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
       backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
-          // Enhanced App Bar
           SliverAppBar(
             expandedHeight: 120,
             floating: false,
@@ -203,7 +201,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
               ),
             ],
           ),
-          // Dashboard Content
           SliverToBoxAdapter(
             child: FadeTransition(
               opacity: _fadeAnimation,
@@ -211,27 +208,39 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
                 position: _slideAnimation,
                 child: Padding(
                   padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Welcome Section
-                      _buildWelcomeSection(),
-                      const SizedBox(height: 30),
-                      // Statistics Section
-                      StatisticsSectionWidget(
-                        usersAsync: usersAsync,
-                        pendingLeavesAsync: pendingLeavesAsync,
-                      ),
-                      const SizedBox(height: 10),
-                      // Quick Actions
-                      _buildQuickActionsSection(),
-                      const SizedBox(height: 10),
-                      // Pending Leaves Section
-                      PendingLeavesSectionWidget(
-                        pendingLeavesAsync: pendingLeavesAsync,
-                      ),
-                      const SizedBox(height: 20),
-                    ],
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildWelcomeSection(),
+                          const SizedBox(height: 30),
+                          // Wrap StatisticsSectionWidget in a constrained box
+                          SizedBox(
+                            width: constraints.maxWidth,
+                            child: StatisticsSectionWidget(
+                              usersAsync: usersAsync,
+                              pendingLeavesAsync: pendingLeavesAsync,
+                            ),
+                          ),
+                          const SizedBox(height: 40),
+                          // Wrap QuickActionsSection in a constrained box
+                          SizedBox(
+                            width: constraints.maxWidth,
+                            child: _buildQuickActionsSection(),
+                          ),
+                          const SizedBox(height: 10),
+                          // Wrap PendingLeavesSectionWidget in a constrained box
+                          SizedBox(
+                            width: constraints.maxWidth,
+                            child: PendingLeavesSectionWidget(
+                              pendingLeavesAsync: pendingLeavesAsync,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                        ],
+                      );
+                    },
                   ),
                 ),
               ),
@@ -364,45 +373,65 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> wit
             ),
           ],
         ),
-        GridView.count(
-          crossAxisCount: 2,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          childAspectRatio: 0.85,
-          children: [
-            DashboardUtils.buildActionCard(
-              'Manage Users',
-              'Add, edit, or remove team members',
-              Iconsax.user_edit,
-              AppColors.primary,
-              () => context.go('/admin/manage-users'),
-            ),
-            DashboardUtils.buildActionCard(
-              'Attendance',
-              'Monitor team attendance patterns',
-              Iconsax.calendar,
-              AppColors.success,
-              () => context.go('/admin/attendance-overview'),
-            ),
-            DashboardUtils.buildActionCard(
-              'Leave Requests',
-              'Review and approve leave applications',
-              Iconsax.clipboard_text,
-              AppColors.warning,
-              () => context.go('/admin/approve-leave'),
-            ),
-            DashboardUtils.buildActionCard(
-              'Reports',
-              'Generate comprehensive analytics',
-              Iconsax.chart,
-              AppColors.info,
-              () => context.go('/admin/report-overview'),
-            ),
-          ],
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 15),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: DashboardUtils.buildActionCard(
+                      'Manage Users',
+                      'Add, edit, or remove team members',
+                      Iconsax.user_edit,
+                      AppColors.primary,
+                      () => context.go('/admin/manage-users'),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: DashboardUtils.buildActionCard(
+                      'Attendance',
+                      'Monitor team attendance patterns',
+                      Iconsax.calendar,
+                      AppColors.success,
+                      () => context.go('/admin/attendance-overview'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: DashboardUtils.buildActionCard(
+                      'Leave Requests',
+                      'Review and approve leave applications',
+                      Iconsax.clipboard_text,
+                      AppColors.warning,
+                      () => context.go('/admin/approve-leave'),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: DashboardUtils.buildActionCard(
+                      'Reports',
+                      'Generate comprehensive analytics',
+                      Iconsax.chart,
+                      const Color.fromARGB(255, 0, 140, 255),
+                      () => context.go('/admin/report-overview'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ],
     );
   }
 }
+
+

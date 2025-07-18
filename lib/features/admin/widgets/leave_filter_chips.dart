@@ -28,8 +28,8 @@ class LeaveFilterChips extends StatelessWidget {
     IconData? icon,
     Color? selectedColor,
   }) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
+    return Container(
+      margin: const EdgeInsets.only(right: 10),
       child: FilterChip(
         selected: isSelected,
         label: Row(
@@ -39,29 +39,34 @@ class LeaveFilterChips extends StatelessWidget {
               Icon(
                 icon,
                 size: 14,
-                color: isSelected ? AppColors.primary : AppColors.textSecondary,
+                color: isSelected ? Colors.white : AppColors.textSecondary,
               ),
-              
+              const SizedBox(width: 6),
             ],
-            Text(label),
+            Text(
+              label,
+              style: AppTextStyles.bodySmall.copyWith(
+                color: isSelected ? Colors.white : AppColors.textPrimary,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
           ],
         ),
         onSelected: (selected) {
           if (selected) onTap();
         },
         backgroundColor: Colors.grey.shade100,
-        selectedColor: selectedColor ?? AppColors.primary.withOpacity(0.2),
-        checkmarkColor: AppColors.primary,
-        labelStyle: AppTextStyles.bodySmall.copyWith(
-          color: isSelected ? AppColors.primary : AppColors.textSecondary,
-          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+        selectedColor: selectedColor ?? AppColors.primary,
+        checkmarkColor: Colors.white,
+        elevation: isSelected ? 4 : 0,
+        shadowColor: (selectedColor ?? AppColors.primary).withOpacity(0.3),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: BorderSide(
+            color: isSelected ? (selectedColor ?? AppColors.primary) : Colors.grey.shade300,
+            width: 1,
+          ),
         ),
-        side: BorderSide(
-          color: isSelected ? AppColors.primary : Colors.transparent,
-          width: 1,
-        ),
-        elevation: isSelected ? 2 : 0,
-        shadowColor: AppColors.primary.withOpacity(0.3),
       ),
     );
   }
@@ -70,16 +75,10 @@ class LeaveFilterChips extends StatelessWidget {
     switch (key.toLowerCase()) {
       case 'all':
         return Iconsax.category;
-      case 'today':
-        return Iconsax.calendar_1;
-      case 'this_week':
-        return Iconsax.calendar_2;
-      case 'this_month':
-        return Iconsax.calendar;
-      case 'paid':
-        return Iconsax.calendar_tick;
       case 'sick':
         return Iconsax.health;
+      case 'paid':
+        return Iconsax.money;
       case 'earned':
         return Iconsax.medal_star;
       default:
@@ -105,108 +104,107 @@ class LeaveFilterChips extends StatelessWidget {
   Color _getStatusColor(String key) {
     switch (key.toLowerCase()) {
       case 'approved':
-        return AppColors.approved.withOpacity(0.2);
+        return AppColors.success;
       case 'pending':
-        return AppColors.pending.withOpacity(0.2);
+        return AppColors.pending;
       case 'rejected':
-        return AppColors.rejected.withOpacity(0.2);
+        return AppColors.error;
       default:
-        return AppColors.primary.withOpacity(0.2);
+        return AppColors.surface;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 3,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // First Row - Filter Options
-          Row(
-            children: [
-              Icon(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppColors.primary.withOpacity(0.5), AppColors.primary.withOpacity(0.5)],
+                ),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
                 Iconsax.filter,
                 size: 16,
-                color: AppColors.textSecondary,
+                color: AppColors.surface,
               ),
-              const SizedBox(width: 8),
-              Text(
-                'Filter by:',
-                style: AppTextStyles.bodySmall.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ],
-          ),
-          // const SizedBox(height: 8),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: filterOptions.entries.map((entry) {
-                final isSelected = selectedFilter == entry.key;
-                return _buildFilterChip(
-                  key: entry.key,
-                  label: entry.value,
-                  isSelected: isSelected,
-                  onTap: () => onFilterChanged(entry.key),
-                  icon: _getFilterIcon(entry.key),
-                );
-              }).toList(),
             ),
+            const SizedBox(width: 8),
+            Text(
+              'Filter by Leave Type',
+              style: AppTextStyles.bodyMedium.copyWith(
+                fontWeight: FontWeight.bold,
+                color: AppColors.surface,
+              ),
+            ),
+          ],
+        ),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: filterOptions.entries.map((entry) {
+              final isSelected = selectedFilter == entry.key;
+              return _buildFilterChip(
+                key: entry.key,
+                label: entry.value,
+                isSelected: isSelected,
+                onTap: () => onFilterChanged(entry.key),
+                icon: _getFilterIcon(entry.key),
+                selectedColor: AppColors.surface,
+              );
+            }).toList(),
           ),
-          
-          const SizedBox(height: 5),
-          
-          // Second Row - Status Filter Options
-          Row(
-            children: [
-              Icon(
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppColors.primary.withOpacity(0.5), AppColors.primary.withOpacity(0.5)],
+                ),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
                 Iconsax.status,
                 size: 16,
-                color: AppColors.textSecondary,
+                color: AppColors.surface,
               ),
-              const SizedBox(width: 8),
-              Text(
-                'Status:',
-                style: AppTextStyles.bodySmall.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: statusFilterOptions.entries.map((entry) {
-                final isSelected = selectedStatusFilter == entry.key;
-                return _buildFilterChip(
-                  key: entry.key,
-                  label: entry.value,
-                  isSelected: isSelected,
-                  onTap: () => onStatusFilterChanged(entry.key),
-                  icon: _getStatusIcon(entry.key),
-                  selectedColor: _getStatusColor(entry.key),
-                );
-              }).toList(),
             ),
+            const SizedBox(width: 8),
+            Text(
+              'Filter by Status',
+              style: AppTextStyles.bodyMedium.copyWith(
+                fontWeight: FontWeight.bold,
+                color: AppColors.surface,
+              ),
+            ),
+          ],
+        ),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: statusFilterOptions.entries.map((entry) {
+              final isSelected = selectedStatusFilter == entry.key;
+              return _buildFilterChip(
+                key: entry.key,
+                label: entry.value,
+                isSelected: isSelected,
+                onTap: () => onStatusFilterChanged(entry.key),
+                icon: _getStatusIcon(entry.key),
+                selectedColor: _getStatusColor(entry.key),
+              );
+            }).toList(),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

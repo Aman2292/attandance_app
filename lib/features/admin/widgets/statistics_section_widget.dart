@@ -26,9 +26,9 @@ class StatisticsSectionWidget extends StatelessWidget {
             Icon(
               Iconsax.chart_1,
               color: AppColors.surface,
-              size: 30,
+              size: 26,
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Text(
               'Overview Statistics',
               style: AppTextStyles.heading2.copyWith(fontSize: 20),
@@ -42,43 +42,64 @@ class StatisticsSectionWidget extends StatelessWidget {
             final totalUsers = users.length;
             final pendingLeaves = pendingLeavesAsync.value?.length ?? 0;
 
-            return GridView.count(
-              crossAxisCount: 2,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              childAspectRatio: 0.95, // Lower ratio = taller card
-              children: [
-                DashboardUtils.buildStatCard(
-                  'Total Users',
-                  '$totalUsers',
-                  Iconsax.people,
-                  AppColors.info,
-                  'Active in system',
-                ),
-                DashboardUtils.buildStatCard(
-                  'Employees',
-                  '$employees',
-                  Iconsax.user,
-                  AppColors.success,
-                  'Team members',
-                ),
-                DashboardUtils.buildStatCard(
-                  'Administrators',
-                  '$admins',
-                  Iconsax.crown,
-                  AppColors.warning,
-                  'System admins',
-                ),
-                DashboardUtils.buildStatCard(
-                  'Pending Leaves',
-                  '$pendingLeaves',
-                  Iconsax.clock,
-                  AppColors.pending,
-                  'Awaiting approval',
-                ),
-              ],
+            return Padding(
+              padding: const EdgeInsets.symmetric( vertical: 15),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.17,
+                    width: MediaQuery.of(context).size.width * 0.21,
+                    child: Expanded(
+                      child: DashboardUtils.buildStatCard(
+                        'Total \nUsers',
+                        '$totalUsers',
+                        Iconsax.people,
+                        const Color.fromARGB(255, 0, 82, 149),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.17,
+                    width: MediaQuery.of(context).size.width * 0.21,
+                    child: Expanded(
+                      child: DashboardUtils.buildStatCard(
+                        'Total \nEmployees',
+                        '$employees',
+                        Iconsax.user,
+                        const Color.fromARGB(255, 0, 70, 2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.17,
+                    width: MediaQuery.of(context).size.width * 0.21,
+                    child: Expanded(
+                      child: DashboardUtils.buildStatCard(
+                        'Total \nAdmins',
+                        '$admins',
+                        Iconsax.crown,
+                        const Color.fromARGB(255, 113, 85, 0),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.17,
+                    width: MediaQuery.of(context).size.width * 0.21,
+                    child: Expanded(
+                      child: DashboardUtils.buildStatCard(
+                        'Pending Leaves',
+                        '$pendingLeaves',
+                        Iconsax.clock,
+                        const Color.fromARGB(255, 0, 120, 138),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             );
           },
           loading: () => DashboardUtils.buildStatsLoading(),
