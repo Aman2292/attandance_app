@@ -5,10 +5,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../features/admin/report_screen.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/signup_screen.dart';
+import '../features/splash/splash_screen.dart'; 
 import '../features/dashboard/dashboard_screen.dart';
 import '../features/attendance/attendance_screen.dart';
 import '../features/attendance/attendance_list_screen.dart';
-import '../features/attendance/calendar_screen.dart';
+import '../features/attendance/attendance_calendar_screen.dart';
 import '../features/leave/leave_screen.dart';
 import '../features/leave/apply_leave_screen.dart';
 import '../features/leave/leave_history_screen.dart';
@@ -25,32 +26,43 @@ import '../models/user_model.dart';
 final authService = AuthService();
 
 final routerConfig = GoRouter(
-  initialLocation: '/login',
+  initialLocation: '/splash', // Changed from '/login' to '/splash'
   redirect: (context, state) async {
+    // Skip redirect logic for splash screen
+    if (state.matchedLocation == '/splash') {
+      return null;
+    }
+
     final prefs = await SharedPreferences.getInstance();
     final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
-    final user = FirebaseAuth.instance.currentUser; // Use FirebaseAuth directly
+    final user = FirebaseAuth.instance.currentUser;
 
-    // Wait for auth state to settle (optional delay if needed)
+    // Wait for auth state to settle
     await Future.delayed(const Duration(milliseconds: 300));
 
     // If no user and not on login/signup page, redirect to login
     if (user == null && state.matchedLocation != '/login' && state.matchedLocation != '/signup') {
-      await prefs.setBool('isLoggedIn', false); // Clear flag if not authenticated
+      await prefs.setBool('isLoggedIn', false);
       return '/login';
     }
 
     // If user exists, redirect based on role
     if (user != null) {
-      await prefs.setBool('isLoggedIn', true); // Sync flag with auth state
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-      if (userDoc.exists) {
-        final userModel = UserModel.fromFirestore(userDoc);
-        if (userModel.role == 'employee' && !state.matchedLocation.startsWith('/employee') && !state.matchedLocation.startsWith('/admin')) {
-          return '/employee';
-        } else if (userModel.role == 'admin' && !state.matchedLocation.startsWith('/admin') && !state.matchedLocation.startsWith('/employee')) {
-          return '/admin';
+      await prefs.setBool('isLoggedIn', true);
+      try {
+        final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        if (userDoc.exists) {
+          final userModel = UserModel.fromFirestore(userDoc);
+          if (userModel.role == 'employee' && !state.matchedLocation.startsWith('/employee') && !state.matchedLocation.startsWith('/admin')) {
+            return '/employee';
+          } else if (userModel.role == 'admin' && !state.matchedLocation.startsWith('/admin') && !state.matchedLocation.startsWith('/employee')) {
+            return '/admin';
+          }
         }
+      } catch (e) {
+        // Handle any errors in fetching user data
+        print('Error fetching user data: $e');
+        return '/login';
       }
     }
 
@@ -63,6 +75,11 @@ final routerConfig = GoRouter(
     return null;
   },
   routes: [
+    // Add splash screen route
+    GoRoute(
+      path: '/splash',
+      builder: (context, state) => const SplashScreen(),
+    ),
     GoRoute(
       path: '/login',
       builder: (context, state) => const LoginScreen(),
@@ -116,7 +133,7 @@ final routerConfig = GoRouter(
               routes: [
                 GoRoute(
                   path: 'apply',
-                  builder: (context, state) =>  ApplyLeaveScreen(),
+                  builder: (context, state) => const ApplyLeaveScreen(),
                 ),
                 GoRoute(
                   path: 'history',

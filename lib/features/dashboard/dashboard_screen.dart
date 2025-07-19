@@ -79,280 +79,483 @@ class _UserDashboardScreenState extends ConsumerState<UserDashboardScreen> with 
     final userId = ref.watch(authServiceProvider).currentUser?.uid ?? '';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      body: SafeArea(
-        child: userAsync.when(
-          data: (user) {
-            if (user == null) {
-              context.go('/login');
-              return const SizedBox();
-            }
-            return RefreshIndicator(
-              onRefresh: () async {
-                ref.invalidate(userProvider);
-                ref.invalidate(attendanceProvider(userId));
-              },
-              color: AppColors.primary,
-              backgroundColor: Colors.white,
-              child: CustomScrollView(
-                physics: const BouncingScrollPhysics(),
-                slivers: [
-                  _buildSliverAppBar(user),
-                  SliverPadding(
-                    padding: const EdgeInsets.all(10),
-                    sliver: SliverList(
-                      delegate: SliverChildListDelegate([
-                        FadeTransition(
-                          opacity: _fadeAnimation,
-                          child: SlideTransition(
-                            position: _slideAnimation,
-                            child: const CurrentTimeWidget(),
-                          ),
+      backgroundColor: AppColors.background,
+      body: userAsync.when(
+        data: (user) {
+          if (user == null) {
+            context.go('/login');
+            return const SizedBox();
+          }
+          return RefreshIndicator(
+            onRefresh: () async {
+              ref.invalidate(userProvider);
+              ref.invalidate(attendanceProvider(userId));
+            },
+            color: AppColors.primary,
+            backgroundColor: Colors.white,
+            child: CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                _buildSliverAppBar(user),
+                SliverPadding(
+                  padding: const EdgeInsets.all(16),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                      FadeTransition(
+                        opacity: _fadeAnimation,
+                        child: SlideTransition(
+                          position: _slideAnimation,
+                          child: const CurrentTimeWidget(),
                         ),
-                        const SizedBox(height: 30),
-                        FadeTransition(
-                          opacity: _fadeAnimation,
-                          child: SlideTransition(
-                            position: _slideAnimation,
-                            child: AttendanceWidget(userId: userId),
-                          ),
+                      ),
+                      const SizedBox(height: 24),
+                      FadeTransition(
+                        opacity: _fadeAnimation,
+                        child: SlideTransition(
+                          position: _slideAnimation,
+                          child: AttendanceWidget(userId: userId),
                         ),
-                        const SizedBox(height: 30),
-                        FadeTransition(
-                          opacity: _fadeAnimation,
-                          child: SlideTransition(
-                            position: _slideAnimation,
-                            child: const QuickActionsWidget(),
-                          ),
+                      ),
+                      const SizedBox(height: 24),
+                      FadeTransition(
+                        opacity: _fadeAnimation,
+                        child: SlideTransition(
+                          position: _slideAnimation,
+                          child: const QuickActionsWidget(),
                         ),
-                        const SizedBox(height: 30),
-                        FadeTransition(
-                          opacity: _fadeAnimation,
-                          child: SlideTransition(
-                            position: _slideAnimation,
-                            child: LeaveBalanceWidget(user: user),
-                          ),
+                      ),
+                      const SizedBox(height: 24),
+                      FadeTransition(
+                        opacity: _fadeAnimation,
+                        child: SlideTransition(
+                          position: _slideAnimation,
+                          child: LeaveBalanceWidget(user: user),
                         ),
-                      ]),
-                    ),
+                      ),
+                      const SizedBox(height: 100), // Extra bottom padding
+                    ]),
                   ),
-                ],
-              ),
-            );
-          },
-          loading: () => _buildLoadingState(),
-          error: (e, _) => _buildErrorState(e),
-        ),
+                ),
+              ],
+            ),
+          );
+        },
+        loading: () => _buildLoadingState(),
+        error: (e, _) => _buildErrorState(e),
       ),
     );
   }
 
   Widget _buildSliverAppBar(UserModel user) {
-    return SliverAppBar(
-      expandedHeight: 100,
-      floating: true,
-      pinned: true,
-      elevation: 0,
-      backgroundColor: Colors.transparent,
-      flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppColors.primary,
-                AppColors.surface.withOpacity(0.5),
-                const Color.fromARGB(255, 0, 84, 181).withOpacity(0.3),
-                const Color.fromARGB(255, 0, 24, 181).withOpacity(0.3),
-              ],
-            ),
+  return SliverAppBar(
+    expandedHeight: 120,
+    floating: true,
+    pinned: true,
+    snap: true,
+    elevation: 0,
+    backgroundColor: Colors.transparent,
+    automaticallyImplyLeading: false,
+    actions: [
+      Container(
+        margin: const EdgeInsets.only(right: 16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppColors.surface.withOpacity(0.4),
+              AppColors.surface.withOpacity(0.4),
+            ],
           ),
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(10),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(3),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.white.withOpacity(0.3),
-                          Colors.white.withOpacity(0.1),
-                        ],
-                      ),
-                    ),
-                    child: CircleAvatar(
-                      radius: 28,
-                      backgroundColor: Colors.white,
-                      child: Text(
-                        user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
-                        style: AppTextStyles.heading1.copyWith(
-                          color: AppColors.surface,
-                          fontSize: 24,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Welcome back,',
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            color: AppColors.surface,
-                          ),
-                        ),
-                        Text(
-                          user.name,
-                          style: AppTextStyles.heading2.copyWith(
-                            color: AppColors.surface,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            user.role,
-                            style: AppTextStyles.bodySmall.copyWith(
-                              color: AppColors.surface,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(Iconsax.notification, color: AppColors.surface, size: 20),
-                    ),
-                    onPressed: () {
-                      // Handle notifications
-                    },
-                  ),
-                ],
-              ),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 5,
+              offset: const Offset(0, 2),
             ),
+          ],
+        ),
+        child: IconButton(
+          onPressed: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Notifications feature coming soon!'),
+                backgroundColor: AppColors.surface,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            );
+          },
+          icon: Stack(
+            children: [
+              Icon(
+                Iconsax.notification,
+                color: Colors.white,
+                size: 22,
+              ),
+              Positioned(
+                top: 0,
+                right: 0,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: AppColors.error,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 1),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
-    );
+    ],
+    flexibleSpace: LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        // Calculate collapse ratio
+        final double appBarHeight = constraints.biggest.height;
+        final double statusBarHeight = MediaQuery.of(context).padding.top;
+        final double minHeight = kToolbarHeight + statusBarHeight;
+        final double maxHeight = 120 + statusBarHeight;
+        final double collapseRatio = ((maxHeight - appBarHeight) / (maxHeight - minHeight)).clamp(0.0, 1.0);
+        
+        return FlexibleSpaceBar(
+          centerTitle: false,
+          titlePadding: EdgeInsets.only(
+            left: 20,
+            bottom: 16,
+            right: 72, // Space for notification button
+          ),
+          // Only show collapsed avatar when mostly collapsed
+          title: collapseRatio > 0.7 ? Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.surface.withOpacity(0.3),
+                  AppColors.surface.withOpacity(0.1),
+                ],
+              ),
+            ),
+            child: CircleAvatar(
+              radius: 16,
+              backgroundColor: AppColors.surface,
+              child: Text(
+                user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ) : null,
+          background: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppColors.primary,
+                  AppColors.primary.withOpacity(0.9),
+                  AppColors.accent.withOpacity(0.7),
+                  AppColors.secondary.withOpacity(0.5),
+                ],
+              ),
+            ),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 16, 20, 20),
+                child: Opacity(
+                  // Fade out expanded content as we collapse
+                  opacity: (1.0 - collapseRatio).clamp(0.0, 1.0),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildUserAvatar(user),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _buildUserInfo(user),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          collapseMode: CollapseMode.parallax,
+        );
+      },
+    ),
+  );
+}
+
+Widget _buildUserAvatar(UserModel user) {
+  return Hero(
+    tag: 'user_avatar_dashboard',
+    child: Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: [
+            Colors.white.withOpacity(0.4),
+            Colors.white.withOpacity(0.2),
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: CircleAvatar(
+        radius: 24,
+        backgroundColor: AppColors.surface,
+        child: Text(
+          user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
+          style: AppTextStyles.heading2.copyWith(
+            color: AppColors.primary,
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+Widget _buildUserInfo(UserModel user) {
+  return Padding(
+    padding: const EdgeInsets.only(top: 4),
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Welcome back,',
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: AppColors.surface.withOpacity(0.9),
+            fontWeight: FontWeight.w400,
+            fontSize: 16,
+          ),
+        ),
+      
+        Text(
+          user.name,
+          style: AppTextStyles.heading2.copyWith(
+            color: AppColors.surface,
+            fontWeight: FontWeight.w700,
+            fontSize: 20,
+          ),
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
+        ),
+        const SizedBox(height: 4),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Colors.white.withOpacity(0.3),
+                Colors.white.withOpacity(0.1),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 3,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                _getRoleIcon(user.role),
+                color: AppColors.surface,
+                size: 12,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                user.role.toUpperCase(),
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.surface,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 10,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+  IconData _getRoleIcon(String role) {
+    switch (role.toLowerCase()) {
+      case 'admin':
+        return Iconsax.crown;
+      case 'employee':
+        return Iconsax.user;
+      default:
+        return Iconsax.user;
+    }
   }
 
   Widget _buildLoadingState() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppColors.surface,
-                  AppColors.surface.withOpacity(0.6),
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.primary,
+                    AppColors.primary.withOpacity(0.8),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(40),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
                 ],
               ),
-              borderRadius: BorderRadius.circular(40),
+              child: const CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                strokeWidth: 4,
+              ),
             ),
-            child: const CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-              strokeWidth: 4,
+            const SizedBox(height: 24),
+            Text(
+              'Loading Dashboard...',
+              style: AppTextStyles.heading3.copyWith(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'Loading Dashboard Screen...',
-            style: AppTextStyles.bodyLarge.copyWith(
-              color: AppColors.textSecondary,
+            const SizedBox(height: 8),
+            Text(
+              'Please wait while we fetch your data',
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildErrorState(Object error) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppColors.error.withOpacity(0.1),
-                  AppColors.error.withOpacity(0.05),
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.error,
+                    AppColors.error.withOpacity(0.8),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(50),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.error.withOpacity(0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
                 ],
               ),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Icon(
-              Iconsax.warning_2,
-              color: AppColors.error,
-              size: 48,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'Something went wrong',
-            style: AppTextStyles.heading2.copyWith(
-              color: AppColors.error,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'We encountered an error while loading your dashboard. Please try again.',
-            style: AppTextStyles.bodyMedium.copyWith(
-              color: AppColors.textSecondary,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 10),
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [AppColors.primary, AppColors.primary.withOpacity(0.8)],
-              ),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: ElevatedButton.icon(
-              onPressed: () => ref.invalidate(userProvider),
-              icon: const Icon(Iconsax.refresh, size: 18),
-              label: const Text('Retry'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                foregroundColor: Colors.white,
-                shadowColor: Colors.transparent,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+              child: Icon(
+                Iconsax.warning_2,
+                color: Colors.white,
+                size: 48,
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 24),
+            Text(
+              'Oops! Something went wrong',
+              style: AppTextStyles.heading3.copyWith(
+                color: AppColors.error,
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'We encountered an error while loading your dashboard. Please check your connection and try again.',
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.primary,
+                    AppColors.primary.withOpacity(0.8),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  ref.invalidate(userProvider);
+                  if (ref.read(authServiceProvider).currentUser?.uid != null) {
+                    ref.invalidate(attendanceProvider(ref.read(authServiceProvider).currentUser!.uid));
+                  }
+                },
+                icon: const Icon(Iconsax.refresh, size: 20),
+                label: const Text('Try Again'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  foregroundColor: Colors.white,
+                  shadowColor: Colors.transparent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
-}
-
-// Add to constants.dart
-extension UserColors on AppColors {
-  static const Color accent = Color(0xFFFF6F61); // Coral
 }

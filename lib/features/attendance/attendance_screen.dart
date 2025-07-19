@@ -289,7 +289,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
               child: Icon(Iconsax.clock, color: AppColors.warning),
             ),
             const SizedBox(width: 10),
-            Text('Reason for Lateness', style: AppTextStyles.heading3),
+            Text('Reason for \nLateness', style: AppTextStyles.heading3),
           ],
         ),
         content: TextField(
@@ -365,78 +365,74 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
     );
   }
 
-  Widget _buildSimplifiedSliverAppBar() {
-    return SliverAppBar(
-      expandedHeight: 100,
-      floating: true,
-      pinned: true,
-      elevation: 0,
-      backgroundColor: Colors.transparent,
-      leading: IconButton(
-        icon: const Icon(
-          Iconsax.arrow_left,
-          color: Colors.white,
-        ),
-        onPressed: () => context.pop(),
-      ),
-      actions: [
-        IconButton(
-          icon: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: AppColors.surface.withOpacity(0.8),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(
-              Iconsax.calendar,
-              color: AppColors.primary,
-              size: 20,
-            ),
-          ),
-          onPressed: () => context.push('/employee/attendance/calendar'),
-        ),
-        IconButton(
-          icon: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: AppColors.surface.withOpacity(0.8),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(
-              Iconsax.document_text,
-              color: AppColors.primary,
-              size: 20,
-            ),
-          ),
-          onPressed: () => context.push('/employee/attendance/list'),
-        ),
-        const SizedBox(width: 8),
-      ],
-      flexibleSpace: FlexibleSpaceBar(
-        title: Text(
-          'Attendance',
-          style: AppTextStyles.heading2.copyWith(
-            color: AppColors.surface,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        background: Container(
+Widget _buildSimplifiedSliverAppBar() {
+  return SliverAppBar(
+    expandedHeight: 100,
+    floating: true,
+    pinned: true,
+    elevation: 0,
+    backgroundColor: Colors.transparent,
+    automaticallyImplyLeading: false, // Removes the back arrow completely
+    actions: [
+      IconButton(
+        icon: Container(
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppColors.primary,
-                AppColors.primary.withOpacity(0.8),
-                const Color.fromARGB(255, 0, 84, 181).withOpacity(0.6),
-                const Color.fromARGB(255, 0, 24, 181).withOpacity(0.4),
-              ],
-            ),
+            color: AppColors.surface.withOpacity(0.4),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: const Icon(
+            Iconsax.calendar,
+            color: Colors.white,
+            size: 20,
+          ),
+        ),
+        onPressed: () => context.push('/employee/attendance/calendar'),
+      ),
+      IconButton(
+        icon: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: AppColors.surface.withOpacity(0.4),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: const Icon(
+            Iconsax.document_text,
+            color: Colors.white,
+            size: 20,
+          ),
+        ),
+        onPressed: () => context.push('/employee/attendance/list'),
+      ),
+      const SizedBox(width: 8),
+    ],
+    flexibleSpace: FlexibleSpaceBar(
+      title: Text(
+        'Attendance',
+        style: AppTextStyles.heading2.copyWith(
+          color: AppColors.surface,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      centerTitle: false, // Moves title to the left
+      titlePadding: const EdgeInsets.only(left: 16, bottom: 16), // Positions title on the left
+      background: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppColors.primary,
+              AppColors.primary.withOpacity(0.8),
+              const Color.fromARGB(255, 0, 84, 181).withOpacity(0.6),
+              const Color.fromARGB(255, 0, 24, 181).withOpacity(0.4),
+            ],
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {

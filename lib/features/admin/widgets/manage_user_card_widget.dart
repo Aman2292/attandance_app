@@ -123,7 +123,7 @@ class UserCardWidget extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 20),
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [const Color.fromARGB(157, 183, 183, 183), const Color.fromARGB(255, 216, 215, 215)],
+              colors: [const Color.fromARGB(255, 255, 255, 255), const Color.fromARGB(255, 255, 255, 255)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),

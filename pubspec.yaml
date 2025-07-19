@@ -45,6 +45,7 @@ dependencies:
   flutter_map: ^8.1.1
   syncfusion_flutter_calendar: ^29.1.38
   flutter_launcher_icons: ^0.14.4
+  flutter_local_notifications: ^19.3.1
   
 
 dev_dependencies:
